@@ -20,6 +20,7 @@ const ctx = canvas.getContext('2d');
 const dpr = window.devicePixelRatio || 1;
 let W = window.innerWidth;
 let H = window.innerHeight;
+let popupTime = 0;
 canvas.width = W * dpr;
 canvas.height = H * dpr;
 canvas.style.width = W + 'px';
@@ -265,7 +266,7 @@ function callAPI(path, method = 'GET', body = null) {
   if (body) options.body = JSON.stringify(body);
   return Promise.race([
     fetch(url, options).then(res => res.json()),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4500))
   ]).catch(() => { addMessage('【网络延迟，请重试】', 'system'); return null; });
 }
 
@@ -528,7 +529,9 @@ async function longPressSettlement() {
     }
     items.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
     popupTitle = `购物（${map}）`;
-    popupData = items; selectedIndex = 0; popupMode = 'shop_buy';
+    popupData = items; selectedIndex = 0; 
+    popupTime = Date.now(); 
+    popupMode = 'shop_buy';
     drawScreen();
   } else { addMessage('这里没有商店。', 'inner'); drawScreen(); }
 }
