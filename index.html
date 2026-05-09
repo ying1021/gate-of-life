@@ -762,6 +762,10 @@ async function battle() {
       .replace(/burn/g, '灼伤')
       .replace(/sensory_damage/g, '感官受损');
     addMessage(battleDesc, 'battle');
+      if (playerData && playerData.vital) {
+      playerData.vital['生命机能'] = Math.max(0, (playerData.vital['生命机能'] || 100) - (result['防御方造成效果']['受到伤害'] || 0));
+      playerData.vital['体力耐力'] = Math.max(0, (playerData.vital['体力耐力'] || 100) - (result['防御方造成效果']['受到伤害'] || 0) * 0.3);
+    }
     addMessage(`你造成了 ${result['攻击方造成效果']['受到伤害']} 点伤害，受到了 ${result['防御方造成效果']['受到伤害']} 点伤害`, 'battle');
     if (Math.random() < 0.3) {
       const redResult = await callAPI('/player/red_name', 'GET');
