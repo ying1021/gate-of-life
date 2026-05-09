@@ -199,6 +199,18 @@ function drawScreen() {
     ctx.fillText('营', stallX + 14, stallY + 30);
     ctx.fillText('业', stallX + 14, stallY + 55);
   }
+    // 存档按钮
+  if (currentView === 'main') {
+    const saveX = W - 50;
+    const saveY = STATUS_BAR_HEIGHT + 4;
+    ctx.fillStyle = '#2a3a1a';
+    roundRect(ctx, saveX, saveY, 40, 40, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ddd';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('存', saveX + 14, saveY + 15);
+    ctx.fillText('档', saveX + 14, saveY + 33);
+  }
   if (popupMode) drawPopup();
 }
 
@@ -315,6 +327,16 @@ canvas.addEventListener('touchend', (e) => {
       openStallPopup();
       return;
     }
+        // 存档按钮
+    if (touch.clientX > W - 50 && touch.clientY > STATUS_BAR_HEIGHT + 4 && touch.clientY < STATUS_BAR_HEIGHT + 44) {
+      if (playerData) {
+        localStorage.setItem('playerData', JSON.stringify(playerData));
+        localStorage.setItem('currentView', 'main');
+        addMessage('💾 已保存。', 'system');
+        drawScreen();
+      }
+      return;
+    }
     if (touch && touch.clientY > H - 72) handleButtonPress(touch.clientX, touch.clientY);
   }
 }, { passive: false });
@@ -339,6 +361,16 @@ canvas.addEventListener('mousedown', (e) => {
 });
 canvas.addEventListener('mouseup', (e) => {
   clearTimeout(longPressTimer);
+      // 存档按钮
+    if (touch.clientX > W - 50 && touch.clientY > STATUS_BAR_HEIGHT + 4 && touch.clientY < STATUS_BAR_HEIGHT + 44) {
+      if (playerData) {
+        localStorage.setItem('playerData', JSON.stringify(playerData));
+        localStorage.setItem('currentView', 'main');
+        addMessage('💾 已保存。', 'system');
+        drawScreen();
+      }
+      return;
+    }
   if (e.clientY > H - 80) handleButtonPress(e.clientX, e.clientY);
 });
 
@@ -364,11 +396,11 @@ function handleButtonPress(x, y) {
     if (x >= 10 && x <= 90) newLife();
     else if (x >= 100 && x <= 180) loadPlayer();
   } else if (currentView === 'main') {
-    if (y >= topY - 20 && y <= topY + btnH + 20) {
+    if (y >= topY - 15 && y <= topY + btnH + 15) {
       if (x >= 5 && x <= 5 + bw + 10) explore();
       else if (x >= 30 + bw - 5 && x <= 30 + bw * 2 + 5) fishing();
       else if (x >= 45 + bw * 2 - 5 && x <= 45 + bw * 3 + 5) battle();
-    } else if (y >= bottomY - 20 && y <= bottomY + btnH + 20) {
+    } else if (y >= bottomY - 15 && y <= bottomY + btnH + 15) {
       if (x >= 5 && x <= 5 + bw + 10) showInventory();
       else if (x >= 30 + bw - 5 && x <= 30 + bw * 2 + 5) showSettlement();
       else if (x >= 45 + bw * 2 - 5 && x <= 45 + bw * 3 + 5) showMap();
@@ -383,17 +415,60 @@ function longPressFishing() {
   else { addMessage(`🎣 ${fishResult.msg}`, 'inner'); addMessage('去湖滨芦苇荡或老城区巷弄的商店购买钓竿吧。', 'inner'); }
   drawScreen();
 }
+
 async function longPressBattle() {
   if (!playerData) return;
-  const pid = playerData?.id || 'test';
-  const result = await callAPI(`/player/red_name?player_id=${pid}`, 'GET');
-  if (result) {
-    addMessage(`⚔ Lv.${playerData.level} ${playerData.species}`, 'system');
-    addMessage(`同族击杀数：${result['同大类击杀数']}`, result['is_red_name'] ? 'battle' : 'normal');
-    if (result['is_red_name']) { addMessage('🔴 你是红名玩家！', 'battle'); addMessage(`忏悔进度：${result['忏悔进度']}`, 'inner'); }
-  }
+  popupTitle = '战斗选项';
+  popupData = [
+    {
+      label: '查看红名状态',
+      action: async () => {
+       
+        const pid = playerData?.id || 'test';
+        const result = await callAPI(`/player/red_name?player_id=${pid}`, 'GET');
+        if (result) {
+          addMessage(`⚔ Lv.${playerData.level} ${playerData.species}`, 'system');
+          addMessage(`同族击杀数：${result['同大类击杀数']}`, result['is_red_name'] ? 'battle' : 'normal');
+          if (result['is_red_name']) { addMessage('🔴 你是红名玩家！', 'battle'); addMessage(`忏悔进度：${result['忏悔进度']}`, 'inner'); }
+        }
+        drawScreen();
+      }
+    },
+    {
+      label: '自我了断（自杀）',
+      action: () => {
+        popupTitle = '确认自杀？';
+        popupData = [
+          {
+            label: '确定自杀（数据将全部清空）',
+            action: async () => {
+              localStorage.removeItem('playerData');
+              localStorage.removeItem('currentView');
+              const pid = playerData?.id || 'test';
+              const result = await callAPI(`/player/suicide?player_id=${pid}`, 'POST');
+              if (result) {
+                addMessage(result['叙事文字'] || result.msg, 'battle');
+                playerData = null;
+                currentView = 'login';
+              }
+              popupMode = null;
+              drawScreen();
+            }
+          },
+          { label: '取消', action: () => { popupMode = null; drawScreen(); } }
+        ];
+        selectedIndex = 0;
+        popupMode = 'confirm_suicide';
+        drawScreen();
+      }
+    },
+    { label: '关闭', action: () => { popupMode = null; drawScreen(); } }
+  ];
+  selectedIndex = 0;
+  popupMode = 'battle_menu';
   drawScreen();
 }
+
 async function longPressSettlement() {
   if (!playerData) return;
   const map = playerData.current_map || '城郊青草地';
@@ -437,7 +512,10 @@ async function newLife() {
     playerData = result['玩家状态'];
     const narrative = result['叙事文字'] || result.msg;
     if (narrative) narrative.split('\n').forEach(line => { if (line.trim()) addMessage(line, 'system'); });
-    currentView = 'main';
+        currentView = 'main';
+    // 本地存档
+    localStorage.setItem('playerData', JSON.stringify(playerData));
+    localStorage.setItem('currentView', 'main');
     if (!playerData.quests) playerData.quests = {};
     playerData.quests['初来乍到'] = { '完成': true, '进度': 1 };
     addMessage('✅ 任务完成：初来乍到', 'heal');
@@ -659,7 +737,21 @@ async function battle() {
   }
   drawScreen();
 }
-async function init() { clearScreen(); const result = await callAPI('/'); if (result) addMessage(result.message, 'system'); drawScreen(); }
+async function init() {
+  clearScreen();
+  const saved = localStorage.getItem('playerData');
+  if (saved) {
+    playerData = JSON.parse(saved);
+    currentView = localStorage.getItem('currentView') || 'main';
+    addMessage('你回来了。', 'system');
+    drawScreen();
+  } else {
+    const result = await callAPI('/');
+    if (result) addMessage(result.message, 'system');
+    drawScreen();
+  }
+}
+
 function drawPopup() {
   ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, W, H);
   const popW = W - 40; const popH = Math.min(H - 100, popupData.length * 36 + 80);
