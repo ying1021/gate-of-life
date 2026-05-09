@@ -78,7 +78,7 @@ let longPressTimer = null, isLongPress = false;
 let msgGroupId = 0;
 function addMessage(text, type = 'normal') {
   if (!text) return;
-  const maxWidth = W - PADDING * 2 - BOX_PADDING * 2 - 10;
+  const maxWidth = W - PADDING * 2 - BOX_PADDING * 2 - 60;
   const lines = text.split('\n');
   const groupId = msgGroupId++;
   for (let line of lines) {
@@ -438,12 +438,12 @@ async function longPressBattle() {
       }
     },
     {
-      label: '自我了断（自杀）',
+      label: '自我了断（重头再来）',
       action: () => {
-        popupTitle = '确认自杀？';
+        popupTitle = '确认重来？';
         popupData = [
           {
-            label: '确定自杀（数据将全部清空）',
+            label: '确定重来（数据将全部清空）',
             action: async () => {
               localStorage.removeItem('playerData');
               localStorage.removeItem('currentView');
@@ -570,7 +570,7 @@ async function explore() {
   addMessage('> 你四处探索...', 'normal');
   drawScreen();
   const pid = playerData.id || 'test';
-  const result = await callAPI(`/game/explore?player_id=${pid}&map_region=城郊青草地`, 'POST');
+  const result = await callAPI(`/game/explore?player_id=${pid}&map_region=${playerData.current_map || '城郊青草地'}`, 'POST');
   if (result) {
     addMessage(result['叙事'], 'normal');
     (result['获得道具'] || []).forEach(item => {
