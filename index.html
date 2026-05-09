@@ -553,7 +553,18 @@ async function newLife() {
   }
   drawScreen();
 }
-async function loadPlayer() { addMessage('请输入你的ID：（暂不支持）', 'system'); drawScreen(); }
+async function loadPlayer() {
+  const saved = localStorage.getItem('playerData');
+  if (saved) {
+    playerData = JSON.parse(saved);
+    currentView = 'main';
+    addMessage('你回来了。', 'system');
+    drawScreen();
+  } else {
+    addMessage('没有存档。点击"新生命"开始吧。', 'inner');
+    drawScreen();
+  }
+}
 async function explore() {
   if (!playerData) return;
   addMessage('> 你四处探索...', 'normal');
@@ -782,17 +793,15 @@ async function battle() {
 }
 async function init() {
   clearScreen();
-  const saved = localStorage.getItem('playerData');
-  if (saved) {
-    playerData = JSON.parse(saved);
-    currentView = localStorage.getItem('currentView') || 'main';
-    addMessage('你回来了。', 'system');
-    drawScreen();
+  const hasSave = localStorage.getItem('playerData');
+  if (hasSave) {
+    currentView = 'login';
   } else {
-    const result = await callAPI('/');
-    if (result) addMessage(result.message, 'system');
-    drawScreen();
+    currentView = 'login';
   }
+  const result = await callAPI('/');
+  if (result) addMessage(result.message, 'system');
+  drawScreen();
 }
 
 function drawPopup() {
