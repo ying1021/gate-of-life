@@ -263,7 +263,10 @@ function callAPI(path, method = 'GET', body = null) {
   const url = API_BASE + path;
   const options = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) options.body = JSON.stringify(body);
-  return fetch(url, options).then(res => res.json()).catch(() => { addMessage('【网络错误】', 'system'); return null; });
+  return Promise.race([
+    fetch(url, options).then(res => res.json()),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+  ]).catch(() => { addMessage('【网络延迟，请重试】', 'system'); return null; });
 }
 
 function canFish() {
@@ -685,8 +688,8 @@ async function longPressMap() {
       popupData = [
         { label: '确定（消耗体力、饱腹、心神）', action: async function() {
           const mr = await callAPI(`/map/move?player_id=${playerData?.id || 'test'}&target_map=${target}`, 'POST');
-          if (mr) {
-            addMessage(mr['msg'], mr['成功'] ? 'heal' : 'inner');
+          if (mr['成功'] && playerData && playerData.vital) {
+              playerData.current_map = mr['当前地图'];
             if (mr['成功'] && playerData && playerData.vital) {
               playerData.vital['体力耐力'] = Math.max(0, (playerData.vital['体力耐力'] || 100) - 8);
               playerData.vital['饱腹值'] = Math.max(0, (playerData.vital['饱腹值'] || 100) - 5);
