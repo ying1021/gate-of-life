@@ -465,6 +465,33 @@ async function longPressBattle() {
         drawScreen();
       }
     },
+        {
+      label: '查看天赋与专精',
+      action: () => {
+        if (!playerData) return;
+        addMessage(`【天赋】${playerData.talent || '无'}`, 'inner');
+        addMessage(`【等级】Lv.${playerData.level}`, 'normal');
+        const specPoints = Math.floor((playerData.level || 1) / 5);
+        addMessage(`【可用专精点】${specPoints}`, 'normal');
+        // 弹出可分配专精
+        if (specPoints > 0) {
+          popupTitle = '分配专精';
+          const specs = ['气候抗性', '水域适应', '体质强化', '生态适应', '生存博弈', '野外捕猎'];
+          popupData = specs.map(spec => ({
+            label: spec,
+            action: async () => {
+              const pid = playerData?.id || 'test';
+              const r = await callAPI(`/player/allocate_spec?player_id=${pid}&spec_name=${spec}&level=${playerData.level}`, 'POST');
+              if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner');
+              drawScreen();
+            }
+          }));
+          popupData.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
+          selectedIndex = 0; popupMode = 'alloc_spec';
+          drawScreen();
+        }
+      }
+    },
     { label: '关闭', action: () => { popupMode = null; drawScreen(); } }
   ];
   selectedIndex = 0;
