@@ -264,12 +264,17 @@ function callAPI(path, method = 'GET', body = null) {
   const url = API_BASE + path;
   const options = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) options.body = JSON.stringify(body);
-  return Promise.race([
-    fetch(url, options).then(res => res.json()),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4500))
-  ]).catch(() => { addMessage('【网络延迟，请重试】', 'system'); return null; });
+  
+  const doFetch = () => fetch(url, options).then(res => res.json());
+  
+  return doFetch().catch(() => {
+    addMessage('【正在唤醒服务器...】', 'system');
+    return doFetch();
+  }).catch(() => {
+    addMessage('【网络延迟，请重试】', 'system');
+    return null;
+  });
 }
-
 function canFish() {
   if (!playerData) return false;
   const map = playerData.current_map || '';
