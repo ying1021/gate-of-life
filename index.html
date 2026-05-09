@@ -364,17 +364,17 @@ canvas.addEventListener('mousedown', (e) => {
 });
 canvas.addEventListener('mouseup', (e) => {
   clearTimeout(longPressTimer);
-      // 存档按钮
-    if (touch.clientX > W - 50 && touch.clientY > STATUS_BAR_HEIGHT + 4 && touch.clientY < STATUS_BAR_HEIGHT + 44) {
-      if (playerData) {
-        localStorage.setItem('playerData', JSON.stringify(playerData));
-        localStorage.setItem('currentView', 'main');
-        addMessage('💾 已保存。', 'system');
-        drawScreen();
-      }
-      return;
+  // 存档按钮（鼠标版）
+  if (e.clientX > W - 50 && e.clientY > STATUS_BAR_HEIGHT + 4 && e.clientY < STATUS_BAR_HEIGHT + 44) {
+    if (playerData) {
+      localStorage.setItem('playerData', JSON.stringify(playerData));
+      localStorage.setItem('currentView', 'main');
+      addMessage('💾 已保存。', 'system');
+      drawScreen();
     }
-  if (e.clientY > H - 80) handleButtonPress(e.clientX, e.clientY);
+    return;
+  }
+  if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
 
 function handleLongPress(x, y) {
