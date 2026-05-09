@@ -190,7 +190,7 @@ function drawScreen() {
   }
 
   if (currentView === 'main' && canStall()) {
-    const stallX = W - 50, stallY = MESSAGE_AREA_TOP + 10;
+    const stallX = W - 50, stallY = MESSAGE_AREA_TOP + 60;
     ctx.fillStyle = '#3a2a1a';
     roundRect(ctx, stallX, stallY, 40, 80, 8);
     ctx.fill();
@@ -323,7 +323,7 @@ canvas.addEventListener('touchend', (e) => {
   clearTimeout(longPressTimer);
   if (!isDragging && !isLongPress) {
     const touch = e.changedTouches[0];
-    if (canStall() && touch.clientX > W - 50 && touch.clientY > MESSAGE_AREA_TOP && touch.clientY < MESSAGE_AREA_TOP + 90) {
+    if (canStall() && touch.clientX > W - 50 && touch.clientY > MESSAGE_AREA_TOP + 60 && touch.clientY < MESSAGE_AREA_TOP + 140) {
       openStallPopup();
       return;
     }
@@ -722,7 +722,16 @@ async function battle() {
   addMessage(attackDescs[Math.floor(Math.random() * attackDescs.length)], 'battle'); drawScreen();
   const result = await callAPI(`/game/battle?attacker_species=${playerData.species}&defender_species=${enemy}&attacker_level=${playerData.level}`, 'POST');
   if (result) {
-    addMessage(result['战斗描述'], 'battle');
+        const battleDesc = result['战斗描述']
+      .replace(/skin_laceration/g, '皮肉撕裂')
+      .replace(/fracture/g, '骨折')
+      .replace(/blood_loss/g, '失血')
+      .replace(/poison/g, '中毒')
+      .replace(/asphyxia/g, '窒息')
+      .replace(/frostbite/g, '冻伤')
+      .replace(/burn/g, '灼伤')
+      .replace(/sensory_damage/g, '感官受损');
+    addMessage(battleDesc, 'battle');
     addMessage(`你造成了 ${result['攻击方造成效果']['受到伤害']} 点伤害，受到了 ${result['防御方造成效果']['受到伤害']} 点伤害`, 'battle');
     if (Math.random() < 0.3) {
       const redResult = await callAPI('/player/red_name', 'GET');
