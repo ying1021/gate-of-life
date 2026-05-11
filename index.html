@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>众生之门</title>
+<title>众生之门 - 完整优化版</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#000;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;}
-canvas{display:block;}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; touch-action:manipulation; -webkit-user-select:none; }
+canvas { display:block; }
 </style>
 </head>
 <body>
@@ -15,140 +15,140 @@ canvas{display:block;}
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let W = window.innerWidth, H = window.innerHeight;
+
 const dpr = window.devicePixelRatio || 1;
+let W = window.innerWidth, H = window.innerHeight;
 canvas.width = W * dpr; canvas.height = H * dpr;
 canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 ctx.scale(dpr,dpr);
-window.addEventListener('resize',()=>{W=window.innerWidth;H=window.innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);});
 
-// ====================== 参数 ======================
-const STATUS_BAR_HEIGHT = 40;
-const PADDING = 10, BOX_PADDING = 8, BOX_SPACING = 4, LINE_HEIGHT = 20;
-const FONT_SIZE = 13;
-const bw = Math.floor((W - 60) / 3), btnH = 30, topY = H - 66, bottomY = H - 32;
-const API_BASE='https://gate-backend-hq8w.onrender.com';
-const TYPE_COLORS={system:'#c8b878',battle:'#cc5544',heal:'#88bb88',event:'#ddcc88',inner:'#aa88cc',normal:'#999999'};
+window.addEventListener('resize', () => {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+});
+
+// ========== 参数 ============
+const STATUS_BAR_HEIGHT = 40, FONT_SIZE = 13, LINE_HEIGHT = 20;
+const PADDING = 10, BOX_PADDING = 8, BOX_SPACING = 4;
+const API_BASE = 'https://gate-backend-hq8w.onrender.com';
+const TYPE_COLORS = { system:'#c8b878', battle:'#cc5544', heal:'#88bb88', event:'#ddcc88', inner:'#aa88cc', normal:'#999999' };
+const MAX_MESSAGES = 100;
 
 let messages = [], playerData = null, currentView = 'login';
+let popupMode = null, popupData = [], popupTitle = '', selectedIndex = 0;
+let highlightedButton = null;
+let touchStartX=0, touchStartY=0, isDragging=false, longPressTimer=null, isLongPress=false;
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.lineTo(x+w-r, y);
-  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-  ctx.lineTo(x+w, y+h-r);
-  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  ctx.lineTo(x+r, y+h);
-  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-  ctx.lineTo(x, y+r);
-  ctx.quadraticCurveTo(x, y, x+r, y);
-  ctx.closePath();
+// =================== 工具函数 ===================
+function addMessage(text,type='normal'){ 
+  if(!text) return;
+  messages.push({text,type});
+  if(messages.length>MAX_MESSAGES) messages.shift();
 }
-
-function addMessage(text,type='normal'){if(!text)return;messages.push({text,type});}
-function clearScreen(){messages.length=0;}
-
-function drawButton(x, y, w, h, text, color) {
-  ctx.fillStyle = color;
-  roundRect(ctx, x, y, w, h, 8);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 13px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + w / 2, y + h / 2);
+function clearScreen(){ messages.length=0; highlightedButton=null; }
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
+function drawButton(x,y,w,h,text,color,id){
+  if(highlightedButton===id) ctx.fillStyle='#555'; else ctx.fillStyle=color;
+  roundRect(ctx,x,y,w,h,8); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,x+w/2,y+h/2);
+  return {x,y,w,h,id};
 }
-
+let buttons = [];
 function drawMainButtons(){
+  buttons=[];
   if(currentView==='login'){
-    const btnW = W * 0.3;
-    drawButton((W-btnW)/2, H-120, btnW, btnH, '新生命', '#2a3a4a');
-    drawButton((W-btnW)/2, H-60, btnW, btnH, '继续', '#2a3a4a');
+    const btnW=W*0.3;
+    buttons.push(drawButton((W-btnW)/2,H-120,btnW,30,'新生命','#2a3a4a','newLife'));
+    buttons.push(drawButton((W-btnW)/2,H-60,btnW,30,'继续','#2a3a4a','continueGame'));
     return;
   }
-  drawButton(15, topY, bw, btnH, '探索', '#2a3a4a');
-  drawButton(30 + bw, topY, bw, btnH, '钓鱼', '#2a3a4a');
-  drawButton(45 + bw*2, topY, bw, btnH, '战斗', '#2a3a4a');
-  drawButton(15, bottomY, bw, btnH, '背包', '#2a3a4a');
-  drawButton(30 + bw, bottomY, bw, btnH, '营地', '#2a3a4a');
-  drawButton(45 + bw*2, bottomY, bw, btnH, '地图', '#2a3a4a');
+  const bw=Math.floor((W-60)/3), btnH=30, topY=H-66, bottomY=H-32;
+  buttons.push(drawButton(15,topY,bw,btnH,'探索','#2a3a4a','explore'));
+  buttons.push(drawButton(30+bw,topY,bw,btnH,'钓鱼','#2a3a4a','fishing'));
+  buttons.push(drawButton(45+bw*2,topY,bw,btnH,'战斗','#2a3a4a','battle'));
+  buttons.push(drawButton(15,bottomY,bw,btnH,'背包','#2a3a4a','inventory'));
+  buttons.push(drawButton(30+bw,bottomY,bw,btnH,'营地','#2a3a4a','settlement'));
+  buttons.push(drawButton(45+bw*2,bottomY,bw,btnH,'地图','#2a3a4a','map'));
 }
-
 function drawScreen(){
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
-  if(currentView==='login'){
-    ctx.fillStyle='#c8b878'; ctx.font='bold 18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('众生之门', W/2, H/2 - 30);
-    ctx.fillStyle='#aa88cc'; ctx.font='13px "Courier New", monospace';
-    ctx.fillText('万物皆玩家，静默求生。', W/2, H/2);
-  } else {
-    let y = STATUS_BAR_HEIGHT + 4;
-    ctx.font = FONT_SIZE + 'px "Courier New", monospace'; ctx.fillStyle = '#d0d0c8';
-    for(let m of messages){
-      const maxWidth = W - PADDING*2 - BOX_PADDING*2 - 70;
-      // 简单换行处理
-      ctx.fillText(m.text, PADDING + BOX_PADDING, y);
-      y += LINE_HEIGHT;
-    }
+  // 绘制状态栏
+  if(playerData && currentView==='main'){
+    ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,W,STATUS_BAR_HEIGHT);
+    ctx.fillStyle='#555'; ctx.fillRect(0,STATUS_BAR_HEIGHT-1,W,1);
+    const v=playerData.vital||{}; ctx.fillStyle='#eee'; ctx.font='bold 14px sans-serif';
+    let nameText=`${playerData.species||'玩家'} Lv.${playerData.level||1}`;
+    ctx.fillText(nameText,12,28);
+    ctx.font='12px sans-serif'; ctx.fillStyle='#ccc';
+    const statsText=`❤️${v['生命机能']||100} ⚡${v['体力耐力']||100} 🍖${v['饱腹值']||100} 🧠${v['精神状态']||100}`;
+    ctx.fillText(statsText,W-ctx.measureText(statsText).width-12,28);
   }
+  // 绘制消息
+  let y=STATUS_BAR_HEIGHT+4;
+  ctx.font=FONT_SIZE+'px monospace'; ctx.fillStyle='#d0d0c8';
+  for(let m of messages) y+=LINE_HEIGHT, ctx.fillText(m.text,PADDING+BOX_PADDING,y);
   drawMainButtons();
+  if(popupMode) drawPopup();
 }
 
+// =================== API 封装 ===================
 async function callAPI(path,method='GET',body=null){
   try{
-    addMessage('【正在唤醒服务器...】','system');
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),20000);
-    const res=await fetch(`${API_BASE}${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null,signal:controller.signal});
-    clearTimeout(timeout);
+    const res=await fetch(`${API_BASE}${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null});
     return await res.json();
-  }catch(e){
-    addMessage('【网络延迟，请重试】','system'); return null;
+  }catch(e){ addMessage('【网络延迟，请重试】','system'); return null; }
+}
+
+// =================== 功能函数 ===================
+async function newLife(){ addMessage('召唤新生命...','system'); drawScreen(); const res=await callAPI('/player/new_life','POST'); if(res){playerData=res['玩家状态']; currentView='main'; addMessage('✅ 初来乍到','heal'); drawScreen(); } }
+async function continueGame(){ addMessage('加载存档...','system'); drawScreen(); }
+async function explore(){ addMessage('探索中...','system'); drawScreen(); const pid=playerData?.id||'test'; const res=await callAPI(`/game/explore?player_id=${pid}`,'POST'); if(res){ addMessage(res['叙事']||'你四处探索。','normal'); drawScreen(); } }
+async function fishing(){ addMessage('钓鱼中...','system'); drawScreen(); const pid=playerData?.id||'test'; const res=await callAPI(`/game/fishing?player_id=${pid}`,'POST'); if(res){ addMessage(res['叙事']||'钓到了一条鱼！','heal'); drawScreen(); } }
+async function battle(){ addMessage('战斗开始！','battle'); drawScreen(); const pid=playerData?.id||'test'; const res=await callAPI(`/game/battle?attacker_species=${playerData.species||'玩家'}&defender_species=兔&attacker_level=${playerData.level||1}`,'POST'); if(res){ addMessage(res['战斗描述']||'战斗结束','battle'); drawScreen(); } }
+function showInventory(){ addMessage('查看背包','system'); drawScreen(); }
+function showSettlement(){ addMessage('查看营地','system'); drawScreen(); }
+function showMap(){ addMessage('查看地图','system'); drawScreen(); }
+
+// =================== 弹窗 ===================
+function drawPopup(){
+  ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(0,0,W,H);
+  const popW=W-40; const popH=Math.min(H-100,popupData.length*36+80);
+  const popX=20, popY=(H-popH)/2;
+  ctx.fillStyle='#1a1a2e'; roundRect(ctx,popX,popY,popW,popH,10); ctx.fill();
+  ctx.strokeStyle='#555'; ctx.lineWidth=2; roundRect(ctx,popX,popY,popW,popH,10); ctx.stroke();
+  ctx.fillStyle='#c8b878'; ctx.font='bold 15px sans-serif'; ctx.fillText(popupTitle,popX+15,popY+30);
+  ctx.font='13px sans-serif';
+  for(let i=0;i<popupData.length;i++){
+    const itemY=popY+55+i*36;
+    if(i===selectedIndex){ctx.fillStyle='#2a4a6a'; roundRect(ctx,popX+10,itemY-5,popW-20,30,5); ctx.fill();}
+    ctx.fillStyle='#ddd'; ctx.fillText(popupData[i].label,popX+20,itemY+17);
   }
 }
 
-async function newLife(){
-  clearScreen(); addMessage('正在召唤新的生灵...','system'); drawScreen();
-  const res=await callAPI('/player/new_life','POST');
-  if(res){ playerData=res['玩家状态']; currentView='main';
-    addMessage('✅ 任务完成：初来乍到','heal'); drawScreen();
+// =================== 按钮事件 ===================
+canvas.addEventListener('mouseup', e=>{ handleButtonClick(e.clientX,e.clientY); });
+canvas.addEventListener('touchend', e=>{ const t=e.changedTouches[0]; handleButtonClick(t.clientX,t.clientY); });
+function handleButtonClick(x,y){
+  for(let btn of buttons){
+    if(x>=btn.x && x<=btn.x+btn.w && y>=btn.y && y<=btn.y+btn.h){
+      highlightedButton=btn.id; drawScreen(); setTimeout(()=>{highlightedButton=null;drawScreen();},100);
+      switch(btn.id){ case 'newLife': newLife(); break;
+      case 'continueGame': continueGame(); break;
+      case 'explore': explore(); break;
+      case 'fishing': fishing(); break;
+      case 'battle': battle(); break;
+      case 'inventory': showInventory(); break;
+      case 'settlement': showSettlement(); break;
+      case 'map': showMap(); break; }
+      break;
+    }
   }
 }
 
-async function continueGame(){
-  clearScreen();
-  addMessage('正在加载存档...','system');
-  drawScreen();
-  // 这里调用你的存档接口
-}
-
-canvas.addEventListener('touchend',e=>{const t=e.changedTouches[0]; handleButtonPress(t.clientX,t.clientY);});
-canvas.addEventListener('mouseup',e=>{handleButtonPress(e.clientX,e.clientY);});
-
-function handleButtonPress(x,y){
-  if(currentView==='login'){
-    const btnW = W*0.3, btnX=(W-btnW)/2;
-    if(x>=btnX && x<=btnX+btnW && y>=H-120 && y<=H-120+btnH) newLife();
-    else if(x>=btnX && x<=btnX+btnW && y>=H-60 && y<=H-60+btnH) continueGame();
-    return;
-  }
-  // 第一排
-  if(y>=topY-15 && y<=topY+btnH+15){
-    if(x>=15-5 && x<=15+bw+10) explore();
-    else if(x>=30+bw-5 && x<=30+bw*2+10) fishing();
-    else if(x>=45+bw*2-5 && x<=45+bw*3+10) battle();
-  }
-  // 第二排
-  if(y>=bottomY-15 && y<=bottomY+btnH+15){
-    if(x>=15-5 && x<=15+bw+10) showInventory();
-    else if(x>=30+bw-5 && x<=30+bw*2+10) showSettlement();
-    else if(x>=45+bw*2-5 && x<=45+bw*3+10) showMap();
-  }
-}
-
-function init(){clearScreen(); drawScreen();}
-init();
+// =================== 初始化 ===================
+drawScreen();
 </script>
 </body>
 </html>
