@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>众生之门 - 完整可运行版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;touch-action:none;}
+canvas{display:block;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ====================== 全局变量 ======================
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+let W=window.innerWidth,H=window.innerHeight;
+const dpr=window.devicePixelRatio||1;
+canvas.width=W*dpr; canvas.height=H*dpr;
+canvas.style.width=W+'px'; canvas.style.height=H+'px';
+ctx.scale(dpr,dpr);
+
+window.addEventListener('resize',()=>{
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+});
+
+// Canvas/UI参数
+const LINE_HEIGHT=20,FONT_SIZE=13,PADDING=10,BOX_PADDING=8,BOX_SPACING=4,STATUS_BAR_HEIGHT=40;
+const TYPE_COLORS={system:'#c8b878',battle:'#cc5544',heal:'#88bb88',event:'#ddcc88',inner:'#aa88cc',normal:'#ccc'};
+const BUTTON_HEIGHT=40,BUTTON_WIDTH_RATIO=0.22; // 按钮宽度占屏幕比例
+const API_BASE='https://gate-backend-hq8w.onrender.com'; // 同步接口
+
+// 游戏状态
+let messages=[],scrollOffset=0;
+let playerData=null,currentView='login';
+let popupMode=null,popupData=[],popupTitle='',selectedIndex=0;
+let syncQueue=[];
+
+// 模拟数据
+const MOCK_INVENTORY={'干粮':3,'净水':2,'简易钓竿':1};
+const MOCK_SHOPS=[{'商店名':'老城区杂货铺','商品':[{'名称':'干粮','价格':2},{'名称':'净水','价格':1},{'名称':'简易钓竿','价格':5}]}];
+const MOCK_MAPS=['老城区巷弄','湖滨芦苇荡','沉船深海遗迹','城郊青草地'];
+const RANDOM_EVENTS=[
+  {'叙事':'你发现一处废弃仓库，里面有一些干粮。','选项':[{'label':'拿干粮','结果':{'获得道具':[{'道具':'干粮','稀有度':'普通'}]}},{'label':'不管它','结果':{'获得道具':[]}}]},
+  {'叙事':'路上遇到一只迷路的小鹿，你救了它并获得净水。','选项':[{'label':'救它','结果':{'获得道具':[{'道具':'净水','稀有度':'普通'}]}},{'label':'不管它','结果':{'获得道具':[]}}]},
+  {'叙事':'仙女出现，等待你的回答。','选项':[{'label':'接受礼物','结果':{'获得道具':[{'道具':'草药','稀有度':'稀有'}]}},{'label':'拒绝','结果':{'获得道具':[]}}]}
+];
+
+// ====================== 消息系统 ======================
+function addMessage(text,type='normal'){if(!text)return;messages.push({text,type});scrollOffset=0;}
+function clearScreen(){messages.length=0;scrollOffset=0;}
+
+// ====================== 绘制函数 ======================
+function drawStatusBar(){
+  if(!playerData||currentView!=='main')return;
+  ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,W,STATUS_BAR_HEIGHT);
+  ctx.fillStyle='#eee'; ctx.font='bold 14px sans-serif';
+  ctx.fillText(`${playerData.species} Lv.${playerData.level}`,12,28);
+  const v=playerData.vital;
+  ctx.font='12px monospace'; ctx.fillStyle='#ccc';
+  const str=`❤️${v['生命机能']} ⚡${v['体力耐力']} 🍖${v['饱腹值']} 🧠${v['精神状态']}`;
+  ctx.fillText(str,W-ctx.measureText(str).width-12,28);
+}
+
+function drawPopup(){
+  if(!popupMode||!popupData||popupData.length===0) return;
+  const boxW=W-40,boxH=LINE_HEIGHT*(popupData.length+2)+BOX_PADDING*2;
+  const x=20,y=(H-boxH)/2;
+  ctx.fillStyle='rgba(30,30,30,0.95)'; ctx.fillRect(x,y,boxW,boxH);
+  ctx.strokeStyle='#fff'; ctx.strokeRect(x,y,boxW,boxH);
+  ctx.fillStyle='#fff'; ctx.font=FONT_SIZE+'px monospace';
+  ctx.fillText(popupTitle,x+BOX_PADDING,y+BOX_PADDING+FONT_SIZE);
+  for(let i=0;i<popupData.length;i++){
+    ctx.fillStyle=(i===selectedIndex)?'#ffee88':'#cccc88';
+    ctx.fillRect(x+BOX_PADDING, y+BOX_PADDING+FONT_SIZE+(i+1)*LINE_HEIGHT-14, boxW-BOX_PADDING*2, LINE_HEIGHT);
+    ctx.fillStyle='#000';
+    ctx.fillText(popupData[i].label, x+BOX_PADDING+4, y+BOX_PADDING+FONT_SIZE+(i+1)*LINE_HEIGHT);
+  }
+}
+
+function drawButton(label,x,y,width,highlight=false){
+  ctx.fillStyle=highlight?'#ffee88':'#cccc88';
+  ctx.fillRect(x,y,width,BUTTON_HEIGHT);
+  ctx.strokeStyle='#fff'; ctx.strokeRect(x,y,width,BUTTON_HEIGHT);
+  ctx.fillStyle='#000';
+  ctx.font='14px sans-serif';
+  ctx.fillText(label,x+10,y+25);
+}
+
+function drawMainButtons(){
+  const btnY=H-60;
+  const btnW=W*BUTTON_WIDTH_RATIO;
+  drawButton('探索',20,btnY,btnW);
+  drawButton('钓鱼',40+btnW,btnY,btnW);
+  drawButton('战斗',60+btnW*2,btnY,btnW);
+  drawButton('背包',80+btnW*3,btnY,btnW);
+}
+
+function drawScreen(){
+  ctx.fillStyle='#0d0d0d'; ctx.fillRect(0,0,W,H);
+  drawStatusBar();
+  let y=STATUS_BAR_HEIGHT+4;
+  for(let m of messages){
+    ctx.fillStyle=TYPE_COLORS[m.type]||TYPE_COLORS.normal;
+    ctx.font=FONT_SIZE+'px monospace';
+    ctx.fillText(m.text,PADDING,y);
+    y+=LINE_HEIGHT+BOX_SPACING;
+  }
+  drawPopup();
+  drawMainButtons();
+}
+
+// ====================== API 模拟/同步 ======================
+async function callAPI(path,method='GET',body=null){
+  await new Promise(r=>setTimeout(r,100));
+  if(path.startsWith('/inventory/view')) return {'背包':{...MOCK_INVENTORY}};
+  if(path.startsWith('/inventory/use')){
+    const item=body?.item_name;
+    if(MOCK_INVENTORY[item]>0){ MOCK_INVENTORY[item]--; return {'成功':true,'msg':`使用了 ${item}`}; }
+    return {'成功':false,'msg':`${item} 不存在`};
+  }
+  if(path.startsWith('/shop/info')) return {'有商店':true,'商店列表':MOCK_SHOPS};
+  if(path.startsWith('/shop/buy')){ const {item_name}=body; MOCK_INVENTORY[item_name]=(MOCK_INVENTORY[item_name]||0)+1; return {'成功':true,'msg':`购买了 ${item_name}`}; }
+  if(path.startsWith('/game/explore')) return {'叙事':'你四处探索发现了资源。','获得道具':[{'道具':'木材','稀有度':'普通'}]};
+  if(path.startsWith('/game/random_event')) return RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)];
+  if(path.startsWith('/game/fishing')) return {'叙事':'钓鱼中','获得道具':[{'道具':'鱼干'}]};
+  if(path.startsWith('/game/battle')) return {'战斗描述':'敌人攻击你，造成伤害。'};
+  if(path.startsWith('/player/new_life')) return {'玩家状态':{'id':'test','species':'人类','level':1,'vital':{'生命机能':100,'体力耐力':100,'饱腹值':100,'精神状态':100},'inventory':{...MOCK_INVENTORY}},'叙事文字':'你诞生了新的生灵。'};
+  return {'msg':'模拟响应'};
+}
+
+function addSyncTask(task){ syncQueue.push(task); attemptSync(); }
+async function attemptSync(){
+  if(!navigator.onLine||syncQueue.length===0) return;
+  const queueCopy=[...syncQueue];
+  for(let task of queueCopy){
+    try{
+      let res=null;
+      if(task.type==='use_item'){ res=await fetch(`${API_BASE}/inventory/use`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_name:task.item})}); res=await res.json();}
+      else if(task.type==='explore'){ res=await fetch(`${API_BASE}/game/explore`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({map_region:task.map})}); res=await res.json();}
+      syncQueue.splice(syncQueue.indexOf(task),1);
+      console.log('[同步成功]',task,res);
+    }catch(err){ console.log('[同步失败]',task,err);}
+  }
+}
+
+// ====================== 核心玩法 ======================
+function triggerRandomEvent(){
+  if(popupMode) return;
+  const eventRes=RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)];
+  if(!eventRes) return;
+  popupTitle='随机事件';
+  popupData=eventRes.选项.map(opt=>({label:opt.label,action:()=>{
+    (opt.结果.获得道具||[]).forEach(it=>{
+      addMessage(`获得：${it.道具}`,'heal');
+      playerData.inventory[it.道具]=(playerData.inventory[it.道具]||0)+1;
+    });
+    popupMode=null; popupData=[]; selectedIndex=0; drawScreen();
+  }}));
+  popupMode='event_choice';
+  addMessage(eventRes.叙事,'event');
+  drawScreen();
+}
+
+async function explore(){
+  if(!playerData) return;
+  addMessage('> 你四处探索...','normal'); drawScreen();
+  const res=await callAPI(`/game/explore?player_id=${playerData.id}`,'POST');
+  if(res){ addMessage(res['叙事'],'normal'); (res['获得道具']||[]).forEach(it=>{ addMessage(`获得：${it.道具}`,'heal'); playerData.inventory[it.道具]=(playerData.inventory[it.道具]||0)+1; }); }
+  triggerRandomEvent();
+  addSyncTask({type:'explore',map:playerData.current_map||'未知',timestamp:Date.now()});
+}
+
+function showInventory(){
+  addMessage('> 查看背包','system'); drawScreen();
+  if(playerData&&playerData.inventory){ for(let [item,qty] of Object.entries(playerData.inventory)){ addMessage(`  ${item} x${qty}`,'heal'); } }
+}
+
+async function newLife(){
+  clearScreen(); addMessage('正在召唤新的生灵...','system'); drawScreen();
+  const res=await callAPI('/player/new_life','POST');
+  if(res){ 
+    playerData=res['玩家状态']; playerData.current_map=MOCK_MAPS[0]; 
+    currentView='main'; 
+    addMessage(res['叙事文字'],'system'); 
+    drawScreen(); 
+  }
+}
+
+// ====================== 事件处理 ======================
+canvas.addEventListener('touchend',e=>{ handleButtonPress(e.changedTouches[0].clientX,e.changedTouches[0].clientY); });
+canvas.addEventListener('mouseup',e=>{ handleButtonPress(e.clientX,e.clientY); });
+
+function handleButtonPress(x,y){
+  if(currentView==='login'){ newLife(); return; }
+  if(currentView!=='main'||!playerData) return;
+
+  // 弹窗点击
+  if(popupMode==='event_choice'){
+    if(!popupData||popupData.length===0) return;
+    const boxX=20, boxW=W-40;
+    const boxH=LINE_HEIGHT*(popupData.length+2)+BOX_PADDING*2;
+    const boxY=(H-boxH)/2+BOX_PADDING+FONT_SIZE;
+    for(let i=0;i<popupData.length;i++){
+      const optionY=boxY+i*LINE_HEIGHT-14;
+      if(x>=boxX+BOX_PADDING && x<=boxX+boxW-BOX_PADDING && y>=optionY && y<=optionY+LINE_HEIGHT){
+        popupData[i].action(); break;
+      }
+    }
+    return;
+  }
+
+  // 底部按钮点击
+  const btnW=W*BUTTON_WIDTH_RATIO; const btnY=H-60;
+  if(x>=20 && x<=20+btnW && y>=btnY && y<=btnY+BUTTON_HEIGHT) explore();
+  else if(x>=40+btnW && x<=40+btnW*2 && y>=btnY && y<=btnY+BUTTON_HEIGHT) showInventory();
+  else if(x>=60+btnW*2 && x<=60+btnW*3 && y>=btnY && y<=btnY+BUTTON_HEIGHT) addMessage('战斗暂未实现','system');
+  else if(x>=80+btnW*3 && x<=80+btnW*4 && y>=btnY && y<=btnY+BUTTON_HEIGHT) addMessage('钓鱼暂未实现','system');
+}
+
+// ====================== 初始化 ======================
+function init(){ clearScreen(); addMessage('众生之门 最终可运行版','system'); drawScreen(); }
+init();
+</script>
+</body>
+</html>
