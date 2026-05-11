@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>众生之门 - 最终可玩版</title>
+<title>众生之门 - 手机/桌面兼容版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#000;overflow:hidden;touch-action:none;}
+body{background:#000;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;}
 canvas{display:block;}
 </style>
 </head>
@@ -25,9 +25,9 @@ window.addEventListener('resize',()=>{W=window.innerWidth;H=window.innerHeight;c
 
 // ====================== 参数 ======================
 const LINE_HEIGHT=22,FONT_SIZE=14,PADDING=10,BOX_PADDING=8,BOX_SPACING=4,STATUS_BAR_HEIGHT=44;
-const TYPE_COLORS={system:'#c8b878',battle:'#cc5544',heal:'#88bb88',event:'#ddcc88',inner:'#aa88cc',normal:'#ccc'};
 const BUTTON_HEIGHT=42,BUTTON_WIDTH_RATIO=0.22;
 const API_BASE='https://gate-backend-hq8w.onrender.com';
+const TYPE_COLORS={system:'#c8b878',battle:'#cc5544',heal:'#88bb88',event:'#ddcc88',inner:'#aa88cc',normal:'#ccc'};
 
 let messages=[],scrollOffset=0;
 let playerData=null,currentView='login';
@@ -92,7 +92,19 @@ function drawScreen(){
 }
 
 // ====================== 核心玩法 ======================
-async function callAPI(path,method='GET',body=null){try{const res=await fetch(`${API_BASE}${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null});return await res.json();}catch(e){addMessage('【网络延迟，请重试】','system');return null;}}
+async function callAPI(path,method='GET',body=null){
+  try{
+    addMessage('【正在唤醒服务器...】','system');
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),20000);
+    const res=await fetch(`${API_BASE}${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null,signal:controller.signal});
+    clearTimeout(timeout);
+    return await res.json();
+  }catch(e){
+    addMessage('【网络延迟，请重试】','system');
+    return null;
+  }
+}
 
 async function newLife(){
   clearScreen();
@@ -143,7 +155,6 @@ async function battle(){
   const enemies=['兔','鹿','狐','鼠','蛙','蛇','鹰','狼'];
   const enemy=enemies[Math.floor(Math.random()*enemies.length)];
   addMessage(`前方传来窸窣声响——你看到了一只【${enemy}】！`,'normal');
-  drawScreen();
   addMessage(`突然，那只【${enemy}】猛地向你扑来！`,'battle');
   addMessage('⚠ 你已经击杀了X个同族！再杀就会变成红名...','battle');
   addMessage('✅ 任务完成：初次战斗！经验+50','heal');
@@ -174,21 +185,15 @@ function showSettlement(){
   drawScreen();
 }
 
-function handleLongPress(x,y){
-  longPressExplore(); longPressFishing(); longPressBattle(); longPressInventory(); longPressSettlement(); longPressMap();
+// ====================== 按钮点击 ======================
+canvas.addEventListener('touchend',e=>{const t=e.changedTouches[0];handleButtonPress(t.clientX,t.clientY);});
+canvas.addEventListener('mouseup',e=>{handleButtonPress(e.clientX,e.clientY);});
+function handleButtonPress(x,y){
+  const btnW=W*BUTTON_WIDTH_RATIO;
+  if(x>=20 && x<=20+btnW && y>=H-110 && y<=H-110+BUTTON_HEIGHT) explore();
+  else if(x>=40+btnW && x<=40+btnW*2 && y>=H-110 && y<=H-110+BUTTON_HEIGHT) fishing();
+  else if(x>=60+btnW*2 && x<=60+btnW*3 && y>=H-110 && y<=H-110+BUTTON_HEIGHT) battle();
 }
-
-function longPressExplore(){ addMessage(`📍 当前位置：【${playerData?.current_map||'未知'}】`,'system'); drawScreen(); }
-function longPressFishing(){ addMessage('🎣 可以钓鱼，可钓获鱼干、净水等','heal'); drawScreen(); }
-function longPressBattle(){ addMessage(`⚔ Lv.${playerData.level} ${playerData.species}`,'system'); drawScreen(); }
-function longPressInventory(){ addMessage('使用了【道具名】：【描述】','heal'); drawScreen(); }
-function longPressSettlement(){ addMessage('弹出商店购物弹窗','system'); drawScreen(); }
-function longPressMap(){ addMessage('弹出目的地选择弹窗','system'); drawScreen(); }
-
-// ====================== 触摸点击 ======================
-canvas.addEventListener('touchend',e=>{const t=e.changedTouches[0];if(t.clientY>H-72) handleButtonPress(t.clientX,t.clientY);});
-canvas.addEventListener('mouseup',e=>{if(e.clientY>H-72) handleButtonPress(e.clientX,e.clientY);});
-function handleButtonPress(x,y){if(y>H-110) explore(); else if(y>H-66) fishing(); else if(y>H-32) battle();}
 
 // ====================== 初始化 =====================
 function init(){clearScreen(); drawScreen();}
