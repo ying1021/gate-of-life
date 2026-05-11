@@ -95,7 +95,27 @@ function drawScreen(){
     drawStatusBar();
     let y=STATUS_BAR_HEIGHT+4;
     for(let m of messages){ ctx.fillStyle=TYPE_COLORS[m.type]||TYPE_COLORS.normal; ctx.font=FONT_SIZE+'px monospace'; ctx.fillText(m.text,PADDING,y); y+=LINE_HEIGHT+BOX_SPACING; }
-    drawPopup();
+    drawPopup();//弹窗
+    drawMainButtons(); // 底部按钮
+}
+
+// 绘制单个按钮
+function drawButton(label,x,y,width,height,highlight=false){
+    ctx.fillStyle = highlight ? '#ffee88' : '#cccc88'; // 高亮/正常颜色
+    ctx.fillRect(x,y,width,height);
+    ctx.strokeStyle = '#fff';
+    ctx.strokeRect(x,y,width,height);
+    ctx.fillStyle = '#000';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(label, x + 10, y + 20); // 调整文字位置
+}
+
+function drawMainButtons(){
+    const btnY = H - 60; // 底部按钮 Y 坐标
+    drawButton('探索', 20, btnY, 100, 30);
+    drawButton('背包', 140, btnY, 100, 30);
+    drawButton('商店', 260, btnY, 100, 30);
+    drawButton('钓鱼', 380, btnY, 100, 30);
 }
 
 // ===== 离线+同步API =====
