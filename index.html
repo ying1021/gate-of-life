@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>众生之门</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;}
+canvas{display:block;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+const dpr = window.devicePixelRatio || 1;
+canvas.width = W * dpr; canvas.height = H * dpr;
+canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+ctx.scale(dpr,dpr);
+window.addEventListener('resize',()=>{W=window.innerWidth;H=window.innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);});
+
+// ====================== 参数 ======================
+const STATUS_BAR_HEIGHT = 40;
+const PADDING = 10, BOX_PADDING = 8, BOX_SPACING = 4, LINE_HEIGHT = 20;
+const FONT_SIZE = 13;
+const bw = Math.floor((W - 60) / 3), btnH = 30, topY = H - 66, bottomY = H - 32;
+const API_BASE='https://gate-backend-hq8w.onrender.com';
+const TYPE_COLORS={system:'#c8b878',battle:'#cc5544',heal:'#88bb88',event:'#ddcc88',inner:'#aa88cc',normal:'#999999'};
+
+let messages = [], playerData = null, currentView = 'login';
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function addMessage(text,type='normal'){if(!text)return;messages.push({text,type});}
+function clearScreen(){messages.length=0;}
+
+function drawButton(x, y, w, h, text, color) {
+  ctx.fillStyle = color;
+  roundRect(ctx, x, y, w, h, 8);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + w / 2, y + h / 2);
+}
+
+function drawMainButtons(){
+  if(currentView==='login'){
+    const btnW = W * 0.3;
+    drawButton((W-btnW)/2, H-120, btnW, btnH, '新生命', '#2a3a4a');
+    drawButton((W-btnW)/2, H-60, btnW, btnH, '继续', '#2a3a4a');
+    return;
+  }
+  drawButton(15, topY, bw, btnH, '探索', '#2a3a4a');
+  drawButton(30 + bw, topY, bw, btnH, '钓鱼', '#2a3a4a');
+  drawButton(45 + bw*2, topY, bw, btnH, '战斗', '#2a3a4a');
+  drawButton(15, bottomY, bw, btnH, '背包', '#2a3a4a');
+  drawButton(30 + bw, bottomY, bw, btnH, '营地', '#2a3a4a');
+  drawButton(45 + bw*2, bottomY, bw, btnH, '地图', '#2a3a4a');
+}
+
+function drawScreen(){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(currentView==='login'){
+    ctx.fillStyle='#c8b878'; ctx.font='bold 18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('众生之门', W/2, H/2 - 30);
+    ctx.fillStyle='#aa88cc'; ctx.font='13px "Courier New", monospace';
+    ctx.fillText('万物皆玩家，静默求生。', W/2, H/2);
+  } else {
+    let y = STATUS_BAR_HEIGHT + 4;
+    ctx.font = FONT_SIZE + 'px "Courier New", monospace'; ctx.fillStyle = '#d0d0c8';
+    for(let m of messages){
+      const maxWidth = W - PADDING*2 - BOX_PADDING*2 - 70;
+      // 简单换行处理
+      ctx.fillText(m.text, PADDING + BOX_PADDING, y);
+      y += LINE_HEIGHT;
+    }
+  }
+  drawMainButtons();
+}
+
+async function callAPI(path,method='GET',body=null){
+  try{
+    addMessage('【正在唤醒服务器...】','system');
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),20000);
+    const res=await fetch(`${API_BASE}${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null,signal:controller.signal});
+    clearTimeout(timeout);
+    return await res.json();
+  }catch(e){
+    addMessage('【网络延迟，请重试】','system'); return null;
+  }
+}
+
+async function newLife(){
+  clearScreen(); addMessage('正在召唤新的生灵...','system'); drawScreen();
+  const res=await callAPI('/player/new_life','POST');
+  if(res){ playerData=res['玩家状态']; currentView='main';
+    addMessage('✅ 任务完成：初来乍到','heal'); drawScreen();
+  }
+}
+
+async function continueGame(){
+  clearScreen();
+  addMessage('正在加载存档...','system');
+  drawScreen();
+  // 这里调用你的存档接口
+}
+
+canvas.addEventListener('touchend',e=>{const t=e.changedTouches[0]; handleButtonPress(t.clientX,t.clientY);});
+canvas.addEventListener('mouseup',e=>{handleButtonPress(e.clientX,e.clientY);});
+
+function handleButtonPress(x,y){
+  if(currentView==='login'){
+    const btnW = W*0.3, btnX=(W-btnW)/2;
+    if(x>=btnX && x<=btnX+btnW && y>=H-120 && y<=H-120+btnH) newLife();
+    else if(x>=btnX && x<=btnX+btnW && y>=H-60 && y<=H-60+btnH) continueGame();
+    return;
+  }
+  // 第一排
+  if(y>=topY-15 && y<=topY+btnH+15){
+    if(x>=15-5 && x<=15+bw+10) explore();
+    else if(x>=30+bw-5 && x<=30+bw*2+10) fishing();
+    else if(x>=45+bw*2-5 && x<=45+bw*3+10) battle();
+  }
+  // 第二排
+  if(y>=bottomY-15 && y<=bottomY+btnH+15){
+    if(x>=15-5 && x<=15+bw+10) showInventory();
+    else if(x>=30+bw-5 && x<=30+bw*2+10) showSettlement();
+    else if(x>=45+bw*2-5 && x<=45+bw*3+10) showMap();
+  }
+}
+
+function init(){clearScreen(); drawScreen();}
+init();
+</script>
+</body>
+</html>
