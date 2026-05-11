@@ -260,32 +260,59 @@ function drawButton(x, y, w, h, text, color) {
   ctx.fillText(text, x + (w - tw) / 2, y + h / 2 + 5);
 }
 
-async function callAPI(path, method = 'GET', body = null, retries = 3, timeout = 10000) {
-  const url = API_BASE + path;
-  const options = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) options.body = JSON.stringify(body);
+// ===== 离线模拟 API =====
+const MOCK_INVENTORY = {
+  '干粮': 3,
+  '净水': 2,
+  '简易钓竿': 1
+};
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
-      const res = await fetch(url, { ...options, signal: controller.signal });
-      clearTimeout(id);
-      
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error(`[callAPI] 请求失败，第${attempt}次: ${url}`, err);
-      addMessage(`【网络延迟，请重试(${attempt}/${retries})】`, 'system');
+const MOCK_SHOPS = [
+  {
+    '商店名': '老城区杂货铺',
+    '商品': [
+      { '名称': '干粮', '价格': 2 },
+      { '名称': '净水', '价格': 1 },
+      { '名称': '简易钓竿', '价格': 5 }
+    ]
+  }
+];
 
-      // 等待 500ms 再重试
-      await new Promise(r => setTimeout(r, 500));
+// 模拟 callAPI
+async function callAPI(path, method = 'GET', body = null) {
+  console.log('[模拟 API] 请求路径:', path, '方法:', method, 'body:', body);
+
+  // 模拟延迟
+  await new Promise(r => setTimeout(r, 200));
+
+  if (path.startsWith('/inventory/view')) {
+    return { '背包': MOCK_INVENTORY };
+  }
+
+  if (path.startsWith('/inventory/use')) {
+    const item = body?.item_name;
+    if (MOCK_INVENTORY[item] > 0) {
+      MOCK_INVENTORY[item]--;
+      return { '成功': true, 'msg': `使用了 ${item}！`, '应用效果': { '体力': 5 } };
+    } else {
+      return { '成功': false, 'msg': `${item} 不存在` };
     }
   }
 
-  addMessage('【请求失败，请检查网络或服务器】', 'system');
-  return null;
+  if (path.startsWith('/shop/info')) {
+    return { '有商店': true, '商店列表': MOCK_SHOPS };
+  }
+
+  if (path.startsWith('/shop/buy')) {
+    const { item_name } = body;
+    const shop = MOCK_SHOPS[0];
+    const product = shop['商品'].find(i => i['名称'] === item_name);
+    if (!product) return { '成功': false, 'msg': '商品不存在' };
+    MOCK_INVENTORY[item_name] = (MOCK_INVENTORY[item_name] || 0) + 1;
+    return { '成功': true, 'msg': `购买了 ${item_name}！`, '获得': item_name, '付出': product['价格'] };
+  }
+
+  return { 'msg': '模拟响应', 'success': true };
 }
 
 function canFish() {
