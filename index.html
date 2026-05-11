@@ -260,21 +260,34 @@ function drawButton(x, y, w, h, text, color) {
   ctx.fillText(text, x + (w - tw) / 2, y + h / 2 + 5);
 }
 
-function callAPI(path, method = 'GET', body = null) {
+async function callAPI(path, method = 'GET', body = null, retries = 3, timeout = 10000) {
   const url = API_BASE + path;
   const options = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) options.body = JSON.stringify(body);
-  
-  const doFetch = () => fetch(url, options).then(res => res.json());
-  
-  return doFetch().catch(() => {
-    addMessage('【正在唤醒服务器...】', 'system');
-    return doFetch();
-  }).catch(() => {
-    addMessage('【网络延迟，请重试】', 'system');
-    return null;
-  });
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.error(`[callAPI] 请求失败，第${attempt}次: ${url}`, err);
+      addMessage(`【网络延迟，请重试(${attempt}/${retries})】`, 'system');
+
+      // 等待 500ms 再重试
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  addMessage('【请求失败，请检查网络或服务器】', 'system');
+  return null;
 }
+
 function canFish() {
   if (!playerData) return false;
   const map = playerData.current_map || '';
