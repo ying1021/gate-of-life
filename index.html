@@ -561,7 +561,7 @@ async function longPressSettlement() {
             if (buyResult) {
               addMessage(buyResult['msg'], buyResult['成功'] ? 'heal' : 'inner');
               if (buyResult['成功'] && playerData) {
-                if (!playerData.inventory) playerData.inventory = {};
+                if (!playerData.inventory) playerData.inventory = { ...MOCK_INVENTORY };
                 playerData.inventory[buyResult['获得']] = (playerData.inventory[buyResult['获得']] || 0) + 1;
                 const pp = buyResult['付出'].split('x');
                 if (pp.length === 2 && playerData.inventory[pp[0]]) { playerData.inventory[pp[0]] -= parseInt(pp[1]); if (playerData.inventory[pp[0]] <= 0) delete playerData.inventory[pp[0]]; }
@@ -692,23 +692,45 @@ function showInventory() {
 }
 async function longPressInventory() {
   if (!playerData) return;
+  if (!playerData.inventory) playerData.inventory = { ...MOCK_INVENTORY };
   const pid = playerData?.id || 'test';
   const result = await callAPI(`/inventory/view?player_id=${pid}`, 'GET');
-  if (result && result['背包'] && Object.keys(result['背包']).length > 0) {
+  const invData = result?.['背包'] || {};
+  // 同步给 playerData.inventory
+  playerData.inventory = { ...invData };
+
+  if (Object.keys(playerData.inventory).length > 0) {
     const items = [];
-    for (let [itemName, qty] of Object.entries(result['背包'])) {
-      items.push({ label: `${itemName} x${qty}`, action: async () => {
-        const useResult = await callAPI(`/inventory/use?item_name=${itemName}`, 'POST');
-        if (useResult && useResult['成功']) { addMessage(useResult['msg'], 'heal'); if (useResult['应用效果']) for (let [stat, value] of Object.entries(useResult['应用效果'])) addMessage(`  ${stat}: ${value}`, 'heal'); }
-        else if (useResult) addMessage(useResult['msg'], 'inner');
-        drawScreen();
-      }});
+    for (let [itemName, qty] of Object.entries(playerData.inventory)) {
+      items.push({
+        label: `${itemName} x${qty}`,
+        action: async () => {
+          const useResult = await callAPI(`/inventory/use?item_name=${itemName}`, 'POST');
+          if (useResult && useResult['成功']) {
+            addMessage(useResult['msg'], 'heal');
+            if (useResult['应用效果'])
+              for (let [stat, value] of Object.entries(useResult['应用效果']))
+                addMessage(`  ${stat}: ${value}`, 'heal');
+            // 更新本地 inventory
+            playerData.inventory[itemName]--;
+            if (playerData.inventory[itemName] <= 0) delete playerData.inventory[itemName];
+          } else if (useResult) addMessage(useResult['msg'], 'inner');
+          drawScreen();
+        }
+      });
     }
     items.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
-    popupTitle = '使用道具'; popupData = items; selectedIndex = 0; popupMode = 'item_use';
+    popupTitle = '使用道具';
+    popupData = items;
+    selectedIndex = 0;
+    popupMode = 'item_use';
     drawScreen();
-  } else { addMessage('背包空空如也。', 'inner'); drawScreen(); }
+  } else {
+    addMessage('背包空空如也。', 'inner');
+    drawScreen();
+  }
 }
+
 async function showSettlement() {
   addMessage('> 查看营地', 'system');
   drawScreen();
