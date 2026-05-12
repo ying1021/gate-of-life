@@ -129,7 +129,6 @@ canvas.addEventListener('touchend', (e) => {
 }, { passive: false });
 
 // 鼠标事件
-// 鼠标事件
 canvas.addEventListener('mousedown', (e) => {
   if (popupMode) {
     const popH = Math.min(H - 100, popupData.length * 36 + 80);
@@ -139,10 +138,12 @@ canvas.addEventListener('mousedown', (e) => {
       selectedIndex = itemIndex;
       drawScreen();
     }
+    // 点击非选项区域时，弹窗不关闭，直接忽略
     return;
   }
-  touchStartY = e.clientY; touchStartX = e.clientX;
-  longPressTimer = setTimeout(() => { isLongPress = true; const btn = findButton(touchStartX, touchStartY); if (btn?.longPress) btn.longPress(); }, 500);
+  touchStartY = e.clientY;
+  touchStartX = e.clientX;
+  longPressTimer = setTimeout(() => { isLongPress = true; handleLongPress(touchStartX, touchStartY); }, 500);
 });
 
 canvas.addEventListener('mousemove', (e) => {
@@ -158,7 +159,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mouseup', (e) => {
-  // 1. 如果是弹窗模式，只处理弹窗点击，不处理任何按钮事件
+  clearTimeout(longPressTimer);
   if (popupMode) {
     const popH = Math.min(H - 100, popupData.length * 36 + 80);
     const popY = (H - popH) / 2;
@@ -166,34 +167,23 @@ canvas.addEventListener('mouseup', (e) => {
     if (itemIndex >= 0 && itemIndex < popupData.length) {
       popupData[itemIndex].action();
     }
-    // 点弹窗外空白区域关闭弹窗
-    else {
-      popupMode = null;
-      drawScreen();
-    }
-    // 关键修复：弹窗模式下无论点哪里，都强制 return，不执行按钮逻辑
+    // 不关闭弹窗，点击空白区域直接忽略
     return;
   }
 
-  // 2. 以下是普通模式（无弹窗）的鼠标事件
-  clearTimeout(longPressTimer);
-  
-  // 侧边存档按钮
-  if (e.clientX > W - 50 && e.clientY > CONFIG.STATUS_BAR_HEIGHT + 2 && e.clientY < CONFIG.STATUS_BAR_HEIGHT + 34) {
-    saveLocal(); 
-    showMsg('💾 已保存。', 'system'); 
+  // 以下为普通鼠标事件
+  if (e.clientX > W - 50 && e.clientY > STATUS_BAR_HEIGHT + 4 && e.clientY < STATUS_BAR_HEIGHT + 44) {
+    if (playerData) {
+      localStorage.setItem('playerData', JSON.stringify(playerData));
+      localStorage.setItem('currentView', 'main');
+      addMessage('💾 已保存。', 'system');
+      drawScreen();
+    }
     return;
   }
-  
-  // 底部按钮区域
-  if (e.clientY > H - 100) {
-    const btn = findButton(e.clientX, e.clientY);
-    if (btn) { 
-      btn.action(); 
-      drawScreen(); 
-    }
-  }
+  if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
+
 
 canvas.addEventListener('mousemove', (e) => {
   if (popupMode) {

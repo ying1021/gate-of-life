@@ -56,7 +56,7 @@ const API = {
   shopInfo: (map) => request(`/shop/info?map_region=${map}`, 'GET'),
   shopBuy: (map, shop, item, pid) => request(`/shop/buy?map_region=${map}&shop_name=${shop}&item_name=${item}&player_id=${pid}`, 'POST'),
   inventoryView: (pid) => request(`/inventory/view?player_id=${pid}`, 'GET'),
-  inventoryUse: (item) => request(`/inventory/use?item_name=${item}`, 'POST'),
+  inventoryUse: (item) => request(`/inventory/use?player_id=${playerData?.id || 'test'}&item_name=${encodeURIComponent(item)}`, 'POST'),
   settlementView: (pid) => request(`/settlement/view?player_id=${pid}`, 'GET'),
   settlementBuild: (pid) => request(`/settlement/build?building_str=简易营地&player_id=${pid}`, 'POST'),
   mapMoves: (pid, map) => request(`/map/moves?player_id=${pid}&map_region=${map}`, 'GET'),
