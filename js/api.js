@@ -13,10 +13,6 @@ function setCache(key, data) {
   apiCache.set(key, { data, time: Date.now() });
 }
 
-// ⚠️ 添加 addMessage 函数，避免未定义报错
-function addMessage(msg, type) {
-  console.log(`[${type}] ${msg}`);
-}
 
 async function request(path, method = 'GET', body = null) {
   const cacheKey = method === 'GET' ? path : null;
@@ -61,9 +57,10 @@ const API = {
       }
       if (!player.vital) {
         player.vital = {
-          '体力耐力': 100,
-          '饱腹值': 100,
-          '精神状态': 100
+        '生命机能': 100,
+        '体力耐力': 100,
+        '饱腹值': 100,
+        '精神状态': 100
         };
       }
       if (!player.inventory) {

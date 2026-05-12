@@ -69,3 +69,11 @@ function loadLocal() {
   }
   return false;
 }
+
+function clearLocal() {
+  localStorage.removeItem('playerData');
+  localStorage.removeItem('currentView');
+  playerData = null;
+  currentView = 'login';
+}
+
