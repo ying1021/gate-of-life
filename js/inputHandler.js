@@ -32,18 +32,26 @@ function drawButtons() {
 
 function drawSideButtons() {
   if (currentView !== 'main') return;
+
   // 存档按钮
   const saveX = W - 50, saveY = CONFIG.STATUS_BAR_HEIGHT + 2;
   ctx.fillStyle = '#2a3a1a'; roundRect(ctx, saveX, saveY, 32, 32, 6); ctx.fill();
   ctx.fillStyle = '#ddd'; ctx.font = 'bold 10px sans-serif';
   ctx.fillText('存', saveX + 9, saveY + 13); ctx.fillText('档', saveX + 9, saveY + 26);
 
+  // 营业按钮
   if (canStall()) {
-    const stallY = MESSAGE_AREA_TOP + 60;
+    const stallY = saveY + 40;
     ctx.fillStyle = '#3a2a1a'; roundRect(ctx, W - 50, stallY, 40, 80, 8); ctx.fill();
     ctx.fillStyle = '#ddd'; ctx.font = 'bold 11px sans-serif';
     ctx.fillText('营', W - 36, stallY + 30); ctx.fillText('业', W - 36, stallY + 55);
   }
+
+  // 帮助按钮
+  const helpY = canStall() ? saveY + 130 : saveY + 40;
+  ctx.fillStyle = '#1a2a3a'; roundRect(ctx, W - 50, helpY, 32, 32, 6); ctx.fill();
+  ctx.fillStyle = '#ddd'; ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('?', W - 40, helpY + 23);
 }
 
 function findButton(x, y) {
