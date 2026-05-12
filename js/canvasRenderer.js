@@ -67,6 +67,22 @@ function drawScreen() {
   drawCover();
   drawMessages();
   drawButtons();
+
+  function drawPopup() {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, W, H);
+  const popW = W - 40; const popH = Math.min(H - 100, popupData.length * 36 + 80);
+  const popX = 20, popY = (H - popH) / 2;
+  ctx.fillStyle = '#1a1a2e'; roundRect(ctx, popX, popY, popW, popH, 10); ctx.fill();
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 2; roundRect(ctx, popX, popY, popW, popH, 10); ctx.stroke();
+  ctx.fillStyle = '#c8b878'; ctx.font = 'bold 15px sans-serif'; ctx.fillText(popupTitle, popX + 15, popY + 30);
+  ctx.font = '13px sans-serif';
+  for (let i = 0; i < popupData.length; i++) {
+    const itemY = popY + 55 + i * 36;
+    if (i === selectedIndex) { ctx.fillStyle = '#2a4a6a'; roundRect(ctx, popX + 10, itemY - 5, popW - 20, 30, 5); ctx.fill(); }
+    ctx.fillStyle = '#ddd'; ctx.fillText(popupData[i].label, popX + 20, itemY + 17);
+  }
+  ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.fillText('点击选择', popX + 15, popY + popH - 15);
+}
   drawSideButtons();
   if (popupMode) drawPopup();
 }
