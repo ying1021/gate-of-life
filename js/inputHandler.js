@@ -109,8 +109,10 @@ canvas.addEventListener('touchend', (e) => {
     const itemIndex = Math.floor((touch.clientY - popY - 55) / 36);
     if (itemIndex >= 0 && itemIndex < popupData.length) {
       popupData[itemIndex].action();
+      popupMode = null;  // ✅ 执行后关闭
+      drawScreen();
     }
-    return;  // 不关闭弹窗，不做任何其他操作
+    return;
   }
 
   clearTimeout(longPressTimer);
@@ -160,14 +162,20 @@ canvas.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('mouseup', (e) => {
   clearTimeout(longPressTimer);
+  
   if (popupMode) {
     const popH = Math.min(H - 100, popupData.length * 36 + 80);
     const popY = (H - popH) / 2;
     const itemIndex = Math.floor((e.clientY - popY - 55) / 36);
+    
     if (itemIndex >= 0 && itemIndex < popupData.length) {
+      // ✅ 只有点击有效选项才执行操作
+      selectedIndex = itemIndex;
       popupData[itemIndex].action();
+      popupMode = null;  // ✅ 动作执行后才关闭
+      drawScreen();
     }
-    // 不关闭弹窗，点击空白区域直接忽略
+    // ✅ 点击无效区域就不关闭弹窗
     return;
   }
 
@@ -184,18 +192,6 @@ canvas.addEventListener('mouseup', (e) => {
   if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
 
-
-canvas.addEventListener('mousemove', (e) => {
-  if (popupMode) {
-    const popH = Math.min(H - 100, popupData.length * 36 + 80);
-    const popY = (H - popH) / 2;
-    const itemIndex = Math.floor((e.clientY - popY - 55) / 36);
-    if (itemIndex >= 0 && itemIndex < popupData.length) {
-      selectedIndex = itemIndex;
-      drawScreen();
-    }
-  }
-});
 
 // ================= playerActions.js 完整版 =================
 
