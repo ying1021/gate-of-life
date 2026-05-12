@@ -205,7 +205,27 @@ function checkQuest(name) {
 }
 
 // ========== 长按功能 ==========
-function longPressExplore() { showMsg(`📍 当前位置：${playerData?.current_map || '未知'}`, 'system'); }
+function longPressExplore() {
+  const map = playerData?.current_map || '城郊青草地';
+  // 地图对应的掉落表在前端 CONFIG 里没有，需要从后端取，或者硬编码一份
+  // 简单方案：发一个提示，告诉玩家去哪个地图有什么
+  const mapInfo = {
+    '城郊青草地': '野果、净水、草药绷带',
+    '老城区巷弄': '干粮、净水、木材',
+    '近郊小树林': '木材、野果、藤绳、草药绷带、野蜂蜜',
+    '漫山枫林': '木材、藤绳、草药绷带、神秘古卷、灵石',
+    '云雾山谷': '石块、铁矿石、灵石、神秘古卷',
+    '湖滨芦苇荡': '鱼干、净水、藤绳',
+    '荒寂戈壁滩': '燧石、石块、铁矿石',
+    '寒色雪岭': '石块、御寒符、铁矿石',
+    '都市商业街': '干粮、过期优惠券',
+    '山间古寺遗址': '灵石、神秘古卷、治疗药膏',
+    '跨海长桥': '鱼干、净水',
+  };
+  const loot = mapInfo[map] || '未知';
+  showMsg(`📍 ${map}：${loot}`, 'system');
+}
+
 function longPressFishing() {
   const fishResult = canFish();
   if (fishResult.status) showMsg('🎣 可以钓鱼，可钓获鱼干、净水等', 'heal');
