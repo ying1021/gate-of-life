@@ -396,7 +396,7 @@ async function openStallPopup() {
     { label: '关闭营业', action: async () => { const r = await API.stallClose(); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } }
   ];
   selectedIndex = 0; popupMode = 'stall'; drawScreen();
-
+}
 
 function showHelpPopup() {
   popupTitle = '🎮 游戏帮助';
