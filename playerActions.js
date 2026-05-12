@@ -1,15 +1,3 @@
-
-
-// ⚠️ 必要全局函数 stub（如果全局已定义可忽略）
-function addMessage(msg, type) { console.log(`[${type}] ${msg}`); }
-function drawScreen() { /* 绘制界面 */ }
-function clearScreen() { /* 清屏 */ }
-function showMsg(msg, type) { addMessage(msg, type); }
-function canFish() { return { status: true, msg: '' }; }
-function saveLocal() { /* 保存本地存档 */ }
-function loadLocal() { return false; }
-function clearLocal() { playerData = null; }
-
 // ================= 游戏逻辑函数 =================
 
 // 新生灵创建
@@ -28,7 +16,7 @@ async function newLife() {
     }
 
     if (!playerData.species) playerData.species = '草鱼';
-    if (!playerData.vital) playerData.vital = { '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
+    if (!playerData.vital) playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
     if (!playerData.inventory) playerData.inventory = {};
     if (!playerData.current_map) playerData.current_map = '城郊青草地';
 

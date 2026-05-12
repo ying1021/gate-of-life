@@ -13,6 +13,7 @@ function setCache(key, data) {
   apiCache.set(key, { data, time: Date.now() });
 }
 
+
 async function request(path, method = 'GET', body = null) {
   const cacheKey = method === 'GET' ? path : null;
   if (cacheKey) {
@@ -48,30 +49,30 @@ async function request(path, method = 'GET', body = null) {
 // 常用 API 快捷方法
 const API = {
   newLife: async () => {
-  const result = await request('/player/create', 'POST');
-  if (result && result.player) {
-    const player = result.player;
-    // 确保关键字段存在且有默认值
-    if (!player.species) {
-      player.species = '草鱼'; // 后端未返回时的备选方案
-    }
-    if (!player.vital) {
-      player.vital = {
+    const result = await request('/player/create', 'POST');
+    if (result && result.玩家状态) {
+      const player = result.玩家状态;
+      if (!player.species) {
+        player.species = '草鱼';
+      }
+      if (!player.vital) {
+        player.vital = {
+        '生命机能': 100,
         '体力耐力': 100,
         '饱腹值': 100,
         '精神状态': 100
-      };
+        };
+      }
+      if (!player.inventory) {
+        player.inventory = [];
+      }
+      if (!player.current_map) {
+        player.current_map = '城郊青草地';
+      }
+      return result; // ✅ return 放在 if 内部
     }
-    if (!player.inventory) {
-      player.inventory = [];
-    }
-    if (!player.current_map) {
-      player.current_map = '城郊青草地';
-    }
-    return result;
-  }
-  return null;
-},
+    return null; // ✅ return 放在 if 外部
+  },
 
   explore: (pid, map) => request(`/game/explore?player_id=${pid}&map_region=${map}`, 'POST'),
   fishing: (pid, map) => request(`/game/fishing?player_id=${pid}&map_region=${map}`, 'POST'),
@@ -81,11 +82,12 @@ const API = {
   shopInfo: (map) => request(`/shop/info?map_region=${map}`, 'GET'),
   shopBuy: (map, shop, item, pid) => request(`/shop/buy?map_region=${map}&shop_name=${shop}&item_name=${item}&player_id=${pid}`, 'POST'),
   inventoryView: (pid) => request(`/inventory/view?player_id=${pid}`, 'GET'),
-  // ✅ 改后
-inventoryUse: (item) => request(
-  `/inventory/use?player_id=${playerData?.id || 'test'}&item_name=${encodeURIComponent(item)}`, 
-  'POST'
-),
+
+  // ⚠️ 修改 inventoryUse，传入 pid 避免未定义 playerData
+  inventoryUse: (pid, item) => request(
+    `/inventory/use?player_id=${pid}&item_name=${encodeURIComponent(item)}`, 
+    'POST'
+  ),
 
   settlementView: (pid) => request(`/settlement/view?player_id=${pid}`, 'GET'),
   settlementBuild: (pid) => request(`/settlement/build?building_str=简易营地&player_id=${pid}`, 'POST'),
