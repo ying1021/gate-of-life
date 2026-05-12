@@ -1,7 +1,6 @@
 // ================= playerActions.js 修复版 =================
 
 // ⚠️ 全局变量初始化
-let playerData = null;
 let currentView = 'login';
 let messages = [];
 let popupMode = null;

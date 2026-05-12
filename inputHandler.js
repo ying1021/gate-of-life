@@ -54,6 +54,11 @@ function findButton(x, y) {
   return null;
 }
 
+function handleButtonPress(x, y) {
+  const btn = findButton(x, y);
+  if (btn) btn.action();
+}
+
 // 触摸事件
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
