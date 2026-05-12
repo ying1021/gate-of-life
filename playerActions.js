@@ -1,12 +1,7 @@
 // ================= playerActions.js 修复版 =================
 
 // ⚠️ 全局变量初始化
-let currentView = 'login';
 let messages = [];
-let popupMode = null;
-let popupData = [];
-let popupTitle = '';
-let selectedIndex = 0;
 
 // ⚠️ 必要全局函数 stub（如果全局已定义可忽略）
 function addMessage(msg, type) { console.log(`[${type}] ${msg}`); }
