@@ -109,8 +109,10 @@ canvas.addEventListener('touchend', (e) => {
     const itemIndex = Math.floor((touch.clientY - popY - 55) / 36);
     if (itemIndex >= 0 && itemIndex < popupData.length) {
       popupData[itemIndex].action();
+      popupMode = null;  // ✅ 执行后关闭
+      drawScreen();
     }
-    return;  // 不关闭弹窗，不做任何其他操作
+    return;
   }
 
   clearTimeout(longPressTimer);
@@ -162,56 +164,34 @@ canvas.addEventListener('mouseup', (e) => {
   clearTimeout(longPressTimer);
   
   if (popupMode) {
-    // 弹窗模式下：只有点击在选项范围内才执行操作
     const popH = Math.min(H - 100, popupData.length * 36 + 80);
     const popY = (H - popH) / 2;
     const itemIndex = Math.floor((e.clientY - popY - 55) / 36);
     
     if (itemIndex >= 0 && itemIndex < popupData.length) {
-      // 点击在有效选项范围内
+      // ✅ 只有点击有效选项才执行操作
       selectedIndex = itemIndex;
       popupData[itemIndex].action();
+      popupMode = null;  // ✅ 动作执行后才关闭
       drawScreen();
     }
-    // 点击在弹窗外或无效区域：不关闭弹窗，不做任何操作
+    // ✅ 点击无效区域就不关闭弹窗
     return;
   }
 
-  if (!isDragging && !isLongPress) {
-    // 侧边按钮处理（存档）
-    if (e.clientX > W - 50 && e.clientY > CONFIG.STATUS_BAR_HEIGHT + 2 && e.clientY < CONFIG.STATUS_BAR_HEIGHT + 34) {
-      saveLocal();
-      showMsg('💾 已保存。', 'system');
-      return;
-    }
-    
-    // 营业按钮处理
-    if (canStall() && e.clientX > W - 50 && e.clientY > MESSAGE_AREA_TOP + 60 && e.clientY < MESSAGE_AREA_TOP + 140) {
-      openStallPopup();
-      return;
-    }
-    
-    // 主按钮处理
-    const btn = findButton(e.clientX, e.clientY);
-    if (btn) {
-      btn.action();
+  // 以下为普通鼠标事件
+  if (e.clientX > W - 50 && e.clientY > STATUS_BAR_HEIGHT + 4 && e.clientY < STATUS_BAR_HEIGHT + 44) {
+    if (playerData) {
+      localStorage.setItem('playerData', JSON.stringify(playerData));
+      localStorage.setItem('currentView', 'main');
+      addMessage('💾 已保存。', 'system');
       drawScreen();
     }
+    return;
   }
-}, { passive: false });
-
-
-canvas.addEventListener('mousemove', (e) => {
-  if (popupMode) {
-    const popH = Math.min(H - 100, popupData.length * 36 + 80);
-    const popY = (H - popH) / 2;
-    const itemIndex = Math.floor((e.clientY - popY - 55) / 36);
-    if (itemIndex >= 0 && itemIndex < popupData.length) {
-      selectedIndex = itemIndex;
-      drawScreen();
-    }
-  }
+  if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
+
 
 // ================= playerActions.js 完整版 =================
 
@@ -511,7 +491,7 @@ async function longPressInventory() {
     const items = [];
     for (let [itemName, qty] of Object.entries(result['背包'])) {
       items.push({ label: `${itemName} x${qty}`, action: async () => {
-        const useResult = await API.inventoryUse(itemName);
+        const useResult = await API.inventoryUse(playerData.id, itemName);
         if (useResult && useResult['成功']) { addMessage(useResult['msg'], 'heal'); if (useResult['应用效果']) for (let [stat, value] of Object.entries(useResult['应用效果'])) addMessage(`  ${stat}: ${value}`, 'heal'); }
         else if (useResult) addMessage(useResult['msg'], 'inner');
         popupMode = null;
