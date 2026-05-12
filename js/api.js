@@ -49,7 +49,7 @@ async function request(path, method = 'GET', body = null) {
 // 常用 API 快捷方法
 const API = {
   newLife: async () => {
-    const result = await request('/player/create', 'POST');
+    const result = await request('/player/new_life', 'POST');
     if (result && result.玩家状态) {
       const player = result.玩家状态;
       if (!player.species) {
