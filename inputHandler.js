@@ -190,7 +190,7 @@ canvas.addEventListener('mouseup', (e) => {
   }
 
   // 以下为普通鼠标事件
- if (e.clientX > W - 50 && e.clientY > CONFIG.STATUS_BAR_HEIGHT + 4 && e.clientY < CONFIG.STATUS_BAR_HEIGHT + 44) {
+  if (e.clientX > W - 50 && e.clientY > CONFIG.STATUS_BAR_HEIGHT + 4 && e.clientY < CONFIG.STATUS_BAR_HEIGHT + 44) {
     if (playerData) {
       localStorage.setItem('playerData', JSON.stringify(playerData));
       localStorage.setItem('currentView', 'main');
