@@ -126,6 +126,11 @@ canvas.addEventListener('touchend', (e) => {
     if (canStall() && touch.clientX > W - 50 && touch.clientY > MESSAGE_AREA_TOP + 60 && touch.clientY < MESSAGE_AREA_TOP + 140) {
       openStallPopup(); return;
     }
+    // 帮助按钮
+    const helpY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 132 : CONFIG.STATUS_BAR_HEIGHT + 42;
+    if (touch.clientX > W - 50 && touch.clientY > helpY && touch.clientY < helpY + 40) {
+    showHelpPopup(); return;
+  }
     const btn = findButton(touch.clientX, touch.clientY);
     if (btn) { btn.action(); drawScreen(); }
   }
@@ -198,6 +203,16 @@ canvas.addEventListener('mouseup', (e) => {
       drawScreen();
     }
     return;
+  }
+    // 营业按钮
+  const stallBtnY = CONFIG.STATUS_BAR_HEIGHT + 42;
+  if (canStall() && e.clientX > W - 50 && e.clientY > stallBtnY && e.clientY < stallBtnY + 80) {
+    openStallPopup(); return;
+  }
+  // 帮助按钮
+  const helpBtnY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 132 : CONFIG.STATUS_BAR_HEIGHT + 42;
+  if (e.clientX > W - 50 && e.clientY > helpBtnY && e.clientY < helpBtnY + 40) {
+    showHelpPopup(); return;
   }
   if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
