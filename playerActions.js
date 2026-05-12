@@ -1,7 +1,4 @@
-// ================= playerActions.js 修复版 =================
 
-// ⚠️ 全局变量初始化
-let messages = [];
 
 // ⚠️ 必要全局函数 stub（如果全局已定义可忽略）
 function addMessage(msg, type) { console.log(`[${type}] ${msg}`); }

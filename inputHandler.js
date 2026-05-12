@@ -54,10 +54,6 @@ function findButton(x, y) {
   return null;
 }
 
-function handleButtonPress(x, y) {
-  const btn = findButton(x, y);
-  if (btn) btn.action();
-}
 
 // 触摸事件
 canvas.addEventListener('touchstart', (e) => {
@@ -164,6 +160,11 @@ canvas.addEventListener('mousemove', (e) => {
     }
   }
 });
+
+function handleButtonPress(x, y) {
+  const btn = findButton(x, y);
+  if (btn) btn.action();
+}
 
 canvas.addEventListener('mouseup', (e) => {
   clearTimeout(longPressTimer);
