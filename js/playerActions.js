@@ -396,4 +396,28 @@ async function openStallPopup() {
     { label: '关闭营业', action: async () => { const r = await API.stallClose(); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } }
   ];
   selectedIndex = 0; popupMode = 'stall'; drawScreen();
+
+  function showHelpPopup() {
+  popupTitle = '🎮 游戏帮助';
+  popupData = [
+    { label: '【探索】点击：探索当前地图获取资源', action: () => {} },
+    { label: '【探索】长按：查看当前地图可探索资源', action: () => {} },
+    { label: '【钓鱼】点击：在水域地图钓鱼', action: () => {} },
+    { label: '【钓鱼】长按：查看钓鱼条件', action: () => {} },
+    { label: '【战斗】点击：与随机敌人战斗', action: () => {} },
+    { label: '【战斗】长按：红名/天赋/专精/自绝', action: () => {} },
+    { label: '【背包】点击：查看背包', action: () => {} },
+    { label: '【背包】长按：使用道具', action: () => {} },
+    { label: '【营地】点击：查看营地', action: () => {} },
+    { label: '【营地】长按：购物/建造', action: () => {} },
+    { label: '【地图】点击：查看可前往地图', action: () => {} },
+    { label: '【地图】长按：移动到其他地图', action: () => {} },
+    { label: '【存档】点击右侧"存"按钮：保存进度', action: () => {} },
+    { label: '【营业】点击右侧"营"按钮：摆摊交易', action: () => {} },
+    { label: '点击空白处关闭', action: () => { popupMode = null; drawScreen(); } }
+  ];
+  selectedIndex = 0;
+  popupMode = 'help';
+  drawScreen();
+}
 }
