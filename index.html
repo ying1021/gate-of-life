@@ -44,7 +44,10 @@ let touchStartY = 0, touchStartX = 0, isDragging = false, longPressTimer = null,
 <script>
 async function init() {
   clearScreen();
+  addMessage('正在唤醒服务器...', 'system');
+  drawScreen();
   const result = await API.healthCheck();
+  clearScreen();
   if (result) addMessage(result.message, 'system');
   buildMainButtons();
   drawScreen();
