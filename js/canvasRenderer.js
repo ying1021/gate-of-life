@@ -81,7 +81,9 @@ function drawScreen() {
     if (i === selectedIndex) { ctx.fillStyle = '#2a4a6a'; roundRect(ctx, popX + 10, itemY - 5, popW - 20, 30, 5); ctx.fill(); }
     ctx.fillStyle = '#ddd'; ctx.fillText(popupData[i].label, popX + 20, itemY + 17);
   }
-  ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.fillText('点击选择', popX + 15, popY + popH - 15);
+    if (popupMode !== 'help') {
+    ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.fillText('点击选择', popX + 15, popY + popH - 15);
+  }
 }
   drawSideButtons();
   if (popupMode) drawPopup();
