@@ -95,6 +95,7 @@ const API = {
   mapMove: (pid, target) => request(`/map/move?player_id=${pid}&target_map=${target}`, 'POST'),
   redName: (pid) => request(`/player/red_name?player_id=${pid}`, 'GET'),
   suicide: (pid) => request(`/player/suicide?player_id=${pid}`, 'POST'),
+  deathCooldown: (pid) => request(`/player/death_cooldown?player_id=${pid}`, 'GET'),
   allocateSpec: (pid, spec, level) => request(`/player/allocate_spec?player_id=${pid}&spec_name=${spec}&level=${level}`, 'POST'),
   stallOpen: () => request('/stall/open', 'POST'),
   stallClose: () => request('/stall/close', 'POST'),
