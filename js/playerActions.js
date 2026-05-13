@@ -415,7 +415,7 @@ function showHelpPopup() {
     { label: '【地图】长按：移动到其他地图', action: () => {} },
     { label: '【存档】点击右侧"存"按钮：保存进度', action: () => {} },
     { label: '【营业】点击右侧"营"按钮：开启摆摊交易', action: () => {} },
-    { label: '点击空白处关闭', action: () => { popupMode = null; drawScreen(); } }
+    { label: '关闭', action: () => { popupMode = null; drawScreen(); } }
   ];
   selectedIndex = 0;
   popupMode = 'help';
