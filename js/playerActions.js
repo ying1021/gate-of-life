@@ -107,7 +107,7 @@ async function explore() {
   }
   checkQuest('初次探索');
   saveLocal();
-  const pid = playerData.id || 'test';
+  await API.savePlayer(pid);
   drawScreen();
 }
 
@@ -139,7 +139,7 @@ async function fishing() {
     }
   }
   saveLocal();
-  const pid = playerData.id || 'test';
+  await API.savePlayer(pid);
   drawScreen();
 }
 
@@ -174,7 +174,7 @@ async function battle() {
   }
   checkQuest('初次战斗');
   saveLocal();
-  const pid = playerData.id || 'test';
+  await API.savePlayer(pid);
   drawScreen();
 }
 
