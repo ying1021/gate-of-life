@@ -52,14 +52,14 @@ function drawSideButtons() {
   ctx.fillStyle = '#1a2a3a'; roundRect(ctx, W - 50, helpY, 32, 32, 6); ctx.fill();
   ctx.fillStyle = '#ddd'; ctx.font = 'bold 14px sans-serif';
   ctx.fillText('?', W - 40, helpY + 23);
-}
 
-function findButton(x, y) {
-  const list = currentView === 'login' ? BUTTONS.login : BUTTONS.main;
-  for (let btn of list) {
-    if (x >= btn.x - 10 && x <= btn.x + btn.w + 10 && y >= btn.y - 15 && y <= btn.y + btn.h + 15) return btn;
+  // 植物生长按钮
+  if (CONFIG.PLANT_SPECIES.includes(playerData?.species || '')) {
+    const plantY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 172 : CONFIG.STATUS_BAR_HEIGHT + 82;
+    ctx.fillStyle = '#2a3a1a'; roundRect(ctx, W - 50, plantY, 32, 32, 6); ctx.fill();
+    ctx.fillStyle = '#ddd'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('🌱', W - 41, plantY + 22);
   }
-  return null;
 }
 
 
@@ -137,6 +137,11 @@ canvas.addEventListener('touchend', (e) => {
     const helpY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 132 : CONFIG.STATUS_BAR_HEIGHT + 42;
     if (touch.clientX > W - 50 && touch.clientY > helpY && touch.clientY < helpY + 40) {
       showHelpPopup(); return;
+    }
+    // 植物生长按钮
+    const plantY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 172 : CONFIG.STATUS_BAR_HEIGHT + 82;
+    if (CONFIG.PLANT_SPECIES.includes(playerData?.species || '') && touch.clientX > W - 50 && touch.clientY > plantY && touch.clientY < plantY + 40) {
+      showPlantMenu(); return;
     }
     const btn = findButton(touch.clientX, touch.clientY);
     if (btn) { btn.action(); drawScreen(); }
@@ -217,6 +222,11 @@ canvas.addEventListener('mouseup', (e) => {
   const helpBtnY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 132 : CONFIG.STATUS_BAR_HEIGHT + 42;
   if (e.clientX > W - 50 && e.clientY > helpBtnY && e.clientY < helpBtnY + 40) {
     showHelpPopup(); return;
+  }
+  // 植物生长按钮
+  const plantY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 172 : CONFIG.STATUS_BAR_HEIGHT + 82;
+  if (CONFIG.PLANT_SPECIES.includes(playerData?.species || '') && e.clientX > W - 50 && e.clientY > plantY && e.clientY < plantY + 40) {
+    showPlantMenu(); return;
   }
   if (e.clientY > H - 100) handleButtonPress(e.clientX, e.clientY);
 });
