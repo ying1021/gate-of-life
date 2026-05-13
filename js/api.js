@@ -105,4 +105,6 @@ const API = {
   instanceEnter: (pid, map) => request(`/instance/enter?player_id=${pid}&map_name=${encodeURIComponent(map)}`, 'POST'),
   instanceExit: (pid) => request(`/instance/exit?player_id=${pid}`, 'POST'),
   tick: (pid, map) => request(`/game/tick?player_id=${pid}&map_region=${map}`, 'POST'),
+  plantGrowth: (pid, weather) => request(`/plant/growth?player_id=${pid}&weather_str=${weather || '晴天'}`, 'POST'),
+  plantHarvest: (pid) => request(`/plant/harvest?player_id=${pid}`, 'POST'),
 };
