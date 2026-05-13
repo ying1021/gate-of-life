@@ -550,8 +550,8 @@ async function openStallPopup() {
   if (!shopResult || !shopResult['有商店']) { addMessage('这里没有商店，无法营业。', 'inner'); drawScreen(); return; }
   popupTitle = '商店营业';
   popupData = [
-    { label: '开启营业（挂出野果x2 → 石块x1）', action: async () => { const r = await API.stallOpen(); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } },
-    { label: '关闭营业', action: async () => { const r = await API.stallClose(); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } }
+    { label: '开启营业（挂出野果x2 → 石块x1）', action: async () => { const r = await API.stallOpen(playerData.id); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } },
+    { label: '关闭营业', action: async () => { const r = await API.stallClose(playerData.id); if (r) addMessage(r['msg'], r['成功'] ? 'heal' : 'inner'); popupMode = null; drawScreen(); } }
   ];
   selectedIndex = 0; popupMode = 'stall'; drawScreen();
 }
