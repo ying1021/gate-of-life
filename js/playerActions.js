@@ -11,6 +11,13 @@ async function newLife() {
   clearScreen();
   addMessage('正在召唤新的生灵...', 'system');
 
+  const cdCheck = await API.deathCooldown('test');
+  if (cdCheck && cdCheck['需要等待']) {
+    addMessage(`⏳ ${cdCheck.msg}`, 'system');
+    drawScreen();
+    return;
+  }
+
   const result = await API.newLife();
   if (result && result.玩家状态) {
     playerData = result['玩家状态'];
