@@ -100,6 +100,7 @@ async function explore() {
   }
   checkQuest('初次探索');
   saveLocal();
+  const pid = playerData.id || 'test';
   drawScreen();
 }
 
@@ -131,12 +132,14 @@ async function fishing() {
     }
   }
   saveLocal();
+  const pid = playerData.id || 'test';
   drawScreen();
 }
 
 // 战斗
 async function battle() {
   if (!playerData) return;
+  const pid = playerData.id || 'test';
   const enemy = CONFIG.ENEMIES[Math.floor(Math.random() * CONFIG.ENEMIES.length)];
   showMsg('> 你警觉地环顾四周...', 'normal');
   addMessage(`前方传来窸窣声响——你看到了一只${enemy}！`, 'normal'); drawScreen();
@@ -164,6 +167,7 @@ async function battle() {
   }
   checkQuest('初次战斗');
   saveLocal();
+  const pid = playerData.id || 'test';
   drawScreen();
 }
 
