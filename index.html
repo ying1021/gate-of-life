@@ -42,6 +42,12 @@ let touchStartY = 0, touchStartX = 0, isDragging = false, longPressTimer = null,
 <script src="js/inputHandler.js"></script>
 
 <script>
+
+window.addEventListener('beforeunload', () => {
+  if (playerData && playerData.id) {
+    navigator.sendBeacon(API_BASE + '/player/offline?player_id=' + playerData.id);
+  }
+});
 async function init() {
   clearScreen();
   addMessage('正在唤醒服务器...', 'system');
