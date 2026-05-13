@@ -549,6 +549,38 @@ function showHelpPopup() {
   drawScreen();
 }
 
+async function showPlantMenu() {
+  if (!playerData) return;
+  popupTitle = '🌱 植物生长';
+  popupData = [
+    { label: '查看生长状态', action: async () => {
+      const pid = playerData?.id || 'test';
+      const r = await API.plantGrowth(pid, '晴天');
+      if (r && r['生长详情']) {
+        const d = r['生长详情'];
+        addMessage(`🌱 当前阶段：${d.current_stage}（${d.progress}）`, 'heal');
+      }
+      popupMode = null; drawScreen();
+    }},
+    { label: '收获产物', action: async () => {
+      const pid = playerData?.id || 'test';
+      const r = await API.plantHarvest(pid);
+      if (r && r['成功']) {
+        addMessage(r['msg'], 'heal');
+        if (r['产物'] && playerData) {
+          if (!playerData.inventory) playerData.inventory = {};
+          playerData.inventory[r['产物']] = (playerData.inventory[r['产物']] || 0) + r['数量'];
+        }
+      } else if (r) {
+        addMessage(r['msg'], 'inner');
+      }
+      popupMode = null; drawScreen();
+    }},
+    { label: '关闭', action: () => { popupMode = null; drawScreen(); } }
+  ];
+  selectedIndex = 0; popupMode = 'plant'; drawScreen();
+}
+
 let tickTimer = null;
 
 function startTickTimer() {
