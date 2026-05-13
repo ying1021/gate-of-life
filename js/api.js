@@ -99,4 +99,5 @@ const API = {
   stallOpen: () => request('/stall/open', 'POST'),
   stallClose: () => request('/stall/close', 'POST'),
   healthCheck: () => request('/', 'GET'),
+  savePlayer: (pid) => request(`/player/online?player_id=${pid}`, 'POST'),
 };
