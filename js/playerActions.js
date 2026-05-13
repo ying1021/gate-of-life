@@ -449,7 +449,12 @@ async function longPressMap() {
   const map = playerData.current_map || '城郊青草地';
   const result = await API.mapMoves(playerData?.id || 'test', map);
   if (!result || !result['可前往'] || result['可前往'].length === 0) { addMessage('没有可前往的其他地图。', 'inner'); drawScreen(); return; }
-  const destinations = result['可前往'];
+    // 添加秘境入口
+  const instances = ['幻境心林', '时光溪谷', '沉船深海遗迹'];
+  const extraDestinations = instances
+    .filter(inst => inst !== map)
+    .map(inst => ({ '名称': '🏰 ' + inst, '已探索': true, '真实名称': inst }));
+  const destinations = [...(result['可前往'] || []), ...extraDestinations];
   popupTitle = '前往何处？';
   popupData = destinations.map(dest => ({
     label: dest['已探索'] ? dest['名称'] : `???（${dest['真实名称']}方向）`,
