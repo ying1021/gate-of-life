@@ -102,5 +102,7 @@ const API = {
   stallClose: () => request('/stall/close', 'POST'),
   healthCheck: () => request('/', 'GET'),
   savePlayer: (pid) => request(`/player/online?player_id=${pid}`, 'POST'),
+  instanceEnter: (pid, map) => request(`/instance/enter?player_id=${pid}&map_name=${encodeURIComponent(map)}`, 'POST'),
+  instanceExit: (pid) => request(`/instance/exit?player_id=${pid}`, 'POST'),
   tick: (pid, map) => request(`/game/tick?player_id=${pid}&map_region=${map}`, 'POST'),
 };
