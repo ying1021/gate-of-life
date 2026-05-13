@@ -118,8 +118,7 @@ canvas.addEventListener('touchend', (e) => {
     const itemIndex = Math.floor((touch.clientY - popY - 55) / 36);
     if (itemIndex >= 0 && itemIndex < popupData.length) {
       popupData[itemIndex].action();
-      popupMode = null;  // ✅ 执行后关闭
-      drawScreen();
+      // ✅ 不要在这里关闭弹窗，由各个 action 自己管理 popupMode
     }
     return;
   }
@@ -192,13 +191,10 @@ canvas.addEventListener('mouseup', (e) => {
     const itemIndex = Math.floor((e.clientY - popY - 55) / 36);
     
     if (itemIndex >= 0 && itemIndex < popupData.length) {
-      // ✅ 只有点击有效选项才执行操作
       selectedIndex = itemIndex;
       popupData[itemIndex].action();
-      popupMode = null;  // ✅ 动作执行后才关闭
-      drawScreen();
+      // ✅ 不要在这里关闭弹窗，由各个 action 自己管理 popupMode
     }
-    // ✅ 点击无效区域就不关闭弹窗
     return;
   }
 
