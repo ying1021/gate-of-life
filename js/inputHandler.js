@@ -136,8 +136,8 @@ canvas.addEventListener('touchend', (e) => {
     // 帮助按钮
     const helpY = canStall() ? CONFIG.STATUS_BAR_HEIGHT + 132 : CONFIG.STATUS_BAR_HEIGHT + 42;
     if (touch.clientX > W - 50 && touch.clientY > helpY && touch.clientY < helpY + 40) {
-    showHelpPopup(); return;
-  }
+      showHelpPopup(); return;
+    }
     const btn = findButton(touch.clientX, touch.clientY);
     if (btn) { btn.action(); drawScreen(); }
   }
