@@ -40,6 +40,7 @@ async function newLife() {
     }
 
     currentView = 'main';
+    startTickTimer();  // ← 加这行
     if (!playerData.quests) playerData.quests = {};
     playerData.quests['初来乍到'] = { '完成': true, '进度': 1 };
 
@@ -513,4 +514,31 @@ function showHelpPopup() {
   selectedIndex = 0;
   popupMode = 'help';
   drawScreen();
+}
+
+let tickTimer = null;
+
+function startTickTimer() {
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(async () => {
+    if (!playerData || currentView !== 'main') return;
+    const pid = playerData.id || 'test';
+    const map = playerData.current_map || '城郊青草地';
+    try {
+      const result = await API.tick(pid, map);
+      if (result && result['当前状态']) {
+        playerData = result['当前状态'];
+        drawScreen();
+      }
+    } catch (e) {
+      // 静默失败
+    }
+  }, 30000); // 每30秒消耗一次
+}
+
+function stopTickTimer() {
+  if (tickTimer) {
+    clearInterval(tickTimer);
+    tickTimer = null;
+  }
 }
