@@ -147,6 +147,10 @@ async function fishing() {
 // 战斗
 async function battle() {
   if (!playerData) return;
+  if (CONFIG.PLANT_SPECIES.includes(playerData.species)) {
+    showMsg('🌱 植物类生灵无法主动战斗，但你拥有强大的防御本能。', 'inner');
+    return;
+  }
   const pid = playerData.id || 'test';
   const enemy = CONFIG.ENEMIES[Math.floor(Math.random() * CONFIG.ENEMIES.length)];
   showMsg('> 你警觉地环顾四周...', 'normal');
