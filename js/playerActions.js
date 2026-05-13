@@ -444,42 +444,66 @@ async function longPressSettlement() {
   popupData.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
   selectedIndex = 0; popupMode = 'settlement'; drawScreen();
 }
+
 async function longPressMap() {
   if (!playerData) return;
   const map = playerData.current_map || '城郊青草地';
   const result = await API.mapMoves(playerData?.id || 'test', map);
-  if (!result || !result['可前往'] || result['可前往'].length === 0) { addMessage('没有可前往的其他地图。', 'inner'); drawScreen(); return; }
-    // 添加秘境入口
-  const instances = ['幻境心林', '时光溪谷', '沉船深海遗迹'];
-  const extraDestinations = instances
-    .filter(inst => inst !== map)
-    .map(inst => ({ '名称': '🏰 ' + inst, '已探索': true, '真实名称': inst }));
-  const destinations = [...(result['可前往'] || []), ...extraDestinations];
+  
   popupTitle = '前往何处？';
-  popupData = destinations.map(dest => ({
-    label: dest['已探索'] ? dest['名称'] : `???（${dest['真实名称']}方向）`,
-    action: function() {
-      const target = dest['已探索'] ? dest['名称'] : dest['真实名称'];
-      popupTitle = `前往 ${target}？`;
-      popupData = [
-        { label: '确定（消耗体力、饱腹、心神）', action: async function() {
-          const mr = await API.mapMove(playerData?.id || 'test', target);
-          if (mr) {
-            addMessage(mr['msg'], mr['成功'] ? 'heal' : 'inner');
-            if (mr['成功'] && playerData && playerData.vital) {
-              playerData.current_map = mr['当前地图'];
-              playerData.vital['体力耐力'] = Math.max(0, (playerData.vital['体力耐力'] || 100) - 8);
-              playerData.vital['饱腹值'] = Math.max(0, (playerData.vital['饱腹值'] || 100) - 5);
-              playerData.vital['精神状态'] = Math.max(0, (playerData.vital['精神状态'] || 100) - 3);
+  popupData = [];
+
+  // 普通地图传送
+  const destinations = result?.['可前往'] || [];
+  for (let dest of destinations) {
+    popupData.push({
+      label: dest['已探索'] ? dest['名称'] : `???（${dest['真实名称']}方向）`,
+      action: function() {
+        const target = dest['已探索'] ? dest['名称'] : dest['真实名称'];
+        popupTitle = `前往 ${target}？`;
+        popupData = [
+          { label: '确定（消耗体力、饱腹、心神）', action: async function() {
+            const mr = await API.mapMove(playerData?.id || 'test', target);
+            if (mr) {
+              addMessage(mr['msg'], mr['成功'] ? 'heal' : 'inner');
+              if (mr['成功'] && playerData && playerData.vital) {
+                playerData.current_map = mr['当前地图'];
+                playerData.vital['体力耐力'] = Math.max(0, (playerData.vital['体力耐力'] || 100) - 8);
+                playerData.vital['饱腹值'] = Math.max(0, (playerData.vital['饱腹值'] || 100) - 5);
+                playerData.vital['精神状态'] = Math.max(0, (playerData.vital['精神状态'] || 100) - 3);
+              }
             }
+            popupMode = null; drawScreen();
+          }},
+          { label: '取消', action: function() { popupMode = null; drawScreen(); } }
+        ];
+        selectedIndex = 0; popupMode = 'confirm_move'; drawScreen();
+      }
+    });
+  }
+
+  // 秘境入口
+  const instanceOptions = ['幻境心林', '时光溪谷', '沉船深海遗迹'];
+  for (let inst of instanceOptions) {
+    if (inst !== map) {
+      popupData.push({
+        label: '🏰 ' + inst,
+        action: async () => {
+          const pid = playerData?.id || 'test';
+          const r = await API.instanceEnter(pid, inst);
+          if (r && r['成功']) {
+            addMessage(r['msg'], 'heal');
+            playerData.current_map = inst;
+          } else if (r) {
+            addMessage(r['msg'], 'inner');
           }
-          popupMode = null; drawScreen();
-        }},
-        { label: '取消', action: function() { popupMode = null; drawScreen(); } }
-      ];
-      selectedIndex = 0; popupMode = 'confirm_move'; drawScreen();
+          popupMode = null;
+          drawScreen();
+        }
+      });
     }
-  }));
+  }
+
   popupData.push({ label: '取消', action: () => { popupMode = null; drawScreen(); } });
   selectedIndex = 0; popupMode = 'map_move'; drawScreen();
 }
