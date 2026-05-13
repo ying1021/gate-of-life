@@ -361,12 +361,65 @@ async function longPressSettlement() {
   if (!playerData) return;
   const map = playerData.current_map || '城郊青草地';
   const pid = playerData?.id || 'test';
+
+  popupTitle = '营地管理';
+  popupData = [];
+
+  // 建造选项
+  const buildOptions = [
+    { name: '简易营地', cost: '木材x5 藤绳x2 石块x3' },
+    { name: '木栅栏', cost: '木材x3 藤绳x1' },
+    { name: '小篝火', cost: '木材x2 燧石x1' },
+    { name: '木箱', cost: '木材x4 铁矿石x1' },
+  ];
+
+  for (let b of buildOptions) {
+    popupData.push({
+      label: `🔨 建造 ${b.name}（${b.cost}）`,
+      action: async () => {
+        const r = await API.settlementBuild(pid, b.name);
+        if (r) {
+          addMessage(r['msg'] || r.msg, r['成功'] ? 'heal' : 'inner');
+          if (r['成功'] && playerData) {
+            // 更新本地背包
+            if (r['背包'] && r['背包']['背包']) {
+              playerData.inventory = r['背包']['背包'];
+            }
+          }
+        }
+        popupMode = null; drawScreen();
+      }
+    });
+  }
+
+  // 拆除选项
+  const viewResult = await API.settlementView(pid);
+  if (viewResult && viewResult['建筑列表'] && viewResult['建筑列表'].length > 0) {
+    for (let building of viewResult['建筑列表']) {
+      popupData.push({
+        label: `🔧 拆除 ${building}`,
+        action: async () => {
+          const r = await API.settlementDismantle(pid, building);
+          if (r) {
+            addMessage(r['msg'] || r.msg, r['成功'] ? 'heal' : 'inner');
+            if (r['背包'] && r['背包']['背包']) {
+              playerData.inventory = r['背包']['背包'];
+            }
+          }
+          popupMode = null; drawScreen();
+        }
+      });
+    }
+  }
+
+  // 购物
   const shopResult = await API.shopInfo(map);
   if (shopResult && shopResult['有商店'] && shopResult['商店列表'].length > 0) {
-    const items = [];
     for (let shop of shopResult['商店列表']) {
       for (let item of shop['商品']) {
-        items.push({ label: `[${shop['商店名']}] ${item['名称']}（${item['价格']}）`, action: async () => {
+        popupData.push({
+          label: `🛒 [${shop['商店名']}] ${item['名称']}（${item['价格']}）`,
+          action: async () => {
             const buyResult = await API.shopBuy(map, shop['商店名'], item['名称'], pid);
             if (buyResult) {
               addMessage(buyResult['msg'], buyResult['成功'] ? 'heal' : 'inner');
@@ -374,21 +427,22 @@ async function longPressSettlement() {
                 if (!playerData.inventory) playerData.inventory = {};
                 playerData.inventory[buyResult['获得']] = (playerData.inventory[buyResult['获得']] || 0) + 1;
                 const pp = buyResult['付出'].split('x');
-                if (pp.length === 2 && playerData.inventory[pp[0]]) { playerData.inventory[pp[0]] -= parseInt(pp[1]); if (playerData.inventory[pp[0]] <= 0) delete playerData.inventory[pp[0]]; }
+                if (pp.length === 2 && playerData.inventory[pp[0]]) {
+                  playerData.inventory[pp[0]] -= parseInt(pp[1]);
+                  if (playerData.inventory[pp[0]] <= 0) delete playerData.inventory[pp[0]];
+                }
               }
             }
-            popupMode = null;
-            drawScreen();
+            popupMode = null; drawScreen();
           }
         });
       }
     }
-    items.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
-    popupTitle = `购物（${map}）`; popupData = items; selectedIndex = 0; popupMode = 'shop_buy';
-    drawScreen();
-  } else { addMessage('这里没有商店。', 'inner'); drawScreen(); }
-}
+  }
 
+  popupData.push({ label: '关闭', action: () => { popupMode = null; drawScreen(); } });
+  selectedIndex = 0; popupMode = 'settlement'; drawScreen();
+}
 async function longPressMap() {
   if (!playerData) return;
   const map = playerData.current_map || '城郊青草地';
