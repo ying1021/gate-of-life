@@ -9,7 +9,7 @@ const BUTTONS = {
 };
 
 function buildMainButtons() {
-  const bw = Math.floor((W - 60) / 3), btnH = CONFIG.BTN_H, topY = H - 66, bottomY = H - 32;
+  const bw = Math.floor((W - 60) / 3), btnH = CONFIG.BTN_H, topY = H - 66, bottomY = H - 30;
   BUTTONS.main = [
     { x: 15, y: topY, w: bw, h: btnH, action: () => explore(), longPress: () => longPressExplore() },
     { x: 30 + bw, y: topY, w: bw, h: btnH, action: () => fishing(), longPress: () => longPressFishing() },
@@ -62,6 +62,13 @@ function drawSideButtons() {
   }
 }
 
+function findButton(x, y) {
+  const list = currentView === 'login' ? BUTTONS.login : BUTTONS.main;
+  for (let btn of list) {
+    if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) return btn;
+  }
+  return null;
+}
 
 // 触摸事件
 canvas.addEventListener('touchstart', (e) => {
