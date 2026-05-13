@@ -128,15 +128,46 @@ async function fishing() {
       playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
     });
     if (result['需要选择']) {
-      addMessage('仙女等待你的回答...', 'inner');
-      const cr = await API.fairyChoice('铁斧头');
-      if (cr) {
-        addMessage(cr['结果'], 'event');
-        (cr['获得道具'] || []).forEach(item => {
-          addMessage(`✨ 仙女赠予：${item['道具']}`, 'heal');
-          playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
-        });
-      }
+      addMessage('仙女从水中升起，手中托着三把斧头...', 'inner');
+      // 弹出选择窗口
+      popupTitle = '仙女问斧：你掉的是哪一把？';
+      popupData = [
+        { label: '🥇 金斧头', action: async () => {
+          const cr = await API.fairyChoice('金斧头');
+          if (cr) {
+            addMessage(cr['结果'], 'event');
+            (cr['获得道具'] || []).forEach(item => {
+              addMessage(`✨ ${item['道具']}`, 'heal');
+              playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
+            });
+          }
+          popupMode = null; drawScreen();
+        }},
+        { label: '🥈 银斧头', action: async () => {
+          const cr = await API.fairyChoice('银斧头');
+          if (cr) {
+            addMessage(cr['结果'], 'event');
+            (cr['获得道具'] || []).forEach(item => {
+              addMessage(`✨ ${item['道具']}`, 'heal');
+              playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
+            });
+          }
+          popupMode = null; drawScreen();
+        }},
+        { label: '🔧 铁斧头', action: async () => {
+          const cr = await API.fairyChoice('铁斧头');
+          if (cr) {
+            addMessage(cr['结果'], 'event');
+            (cr['获得道具'] || []).forEach(item => {
+              addMessage(`✨ ${item['道具']}`, 'heal');
+              playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
+            });
+          }
+          popupMode = null; drawScreen();
+        }}
+      ];
+      selectedIndex = 0; popupMode = 'fairy'; drawScreen();
+      return;
     }
   }
   saveLocal();
