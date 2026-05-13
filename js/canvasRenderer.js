@@ -36,7 +36,9 @@ function drawStatusBar() {
   const v = playerData.vital;
   ctx.fillStyle = '#eee';
   ctx.font = 'bold 14px sans-serif';
-  let nameText = `${playerData.species}  Lv.${playerData.level}`;
+  const mapName = playerData.current_map || '未知';
+  const weather = playerData.weather || '晴天';
+  let nameText = `${playerData.species}  Lv.${playerData.level}  📍${mapName}  ☀️${weather}`;
   if (playerData.red_name) { nameText += '  🔴'; ctx.fillStyle = '#ff4444'; }
   ctx.fillText(nameText, 12, 28);
   ctx.font = '12px sans-serif';
