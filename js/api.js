@@ -90,7 +90,8 @@ const API = {
   ),
 
   settlementView: (pid) => request(`/settlement/view?player_id=${pid}`, 'GET'),
-  settlementBuild: (pid) => request(`/settlement/build?building_str=简易营地&player_id=${pid}`, 'POST'),
+  settlementBuild: (pid, building) => request(`/settlement/build?player_id=${pid}&building_str=${encodeURIComponent(building)}`, 'POST'),
+  settlementDismantle: (pid, building) => request(`/settlement/dismantle?player_id=${pid}&building_str=${encodeURIComponent(building)}`, 'POST'),
   mapMoves: (pid, map) => request(`/map/moves?player_id=${pid}&map_region=${map}`, 'GET'),
   mapMove: (pid, target) => request(`/map/move?player_id=${pid}&target_map=${target}`, 'POST'),
   redName: (pid) => request(`/player/red_name?player_id=${pid}`, 'GET'),
