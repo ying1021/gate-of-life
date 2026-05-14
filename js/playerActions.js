@@ -30,7 +30,9 @@ async function newLife() {
 
     if (!playerData.species) playerData.species = '草鱼';
     if (!playerData.vital) playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
-    if (!playerData.inventory) playerData.inventory = {};
+    if (!playerData.inventory || Object.keys(playerData.inventory).length === 0) {
+      playerData.inventory = {"野果": 2, "草药绷带": 1, "生锈的铁刀": 1};
+}
     if (!playerData.current_map) playerData.current_map = '城郊青草地';
 
     const narrative = result['叙事文字'] || result.msg;
