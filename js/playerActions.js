@@ -624,14 +624,14 @@ function startTickTimer() {
     const map = playerData.current_map || '城郊青草地';
     try {
       const result = await API.tick(pid, map);
-      if (result && result['当前状态']) {
-        playerData = result['当前状态'];
+      if (result && result['当前状态'] && result['当前状态']['vital']) {
+        playerData.vital = result['当前状态']['vital'];
         drawScreen();
       }
     } catch (e) {
       // 静默失败
     }
-  }, 30000); // 每30秒消耗一次
+  }, 30000);
 }
 
 function stopTickTimer() {
