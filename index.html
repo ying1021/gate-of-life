@@ -2,11 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
 <title>众生之门</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#000; overflow:hidden; touch-action:none; }
+body { background:#000; overflow:hidden; touch-action:none; padding-bottom: env(safe-area-inset-bottom); }
 canvas { display:block; }
 </style>
 </head>
@@ -59,6 +59,11 @@ async function init() {
   drawScreen();
 }
 init();
+document.addEventListener('touchstart', function() {
+  if (document.fullscreenElement === null) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, { once: true });
 </script>
 </body>
 </html>
