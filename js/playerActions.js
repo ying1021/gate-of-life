@@ -348,14 +348,26 @@ async function longPressBattle() {
         popupData = [
           { label: '确定自绝（数据将全部清空）', action: async () => {
               const pid = playerData?.id;
-              if (!pid) { popupMode = null; drawScreen(); return; }
-              const result = await API.suicide(pid);
-              if (result) addMessage(result['叙事文字'] || result.msg, 'battle');
-              clearLocal();
+              popupMode = null;
+              drawScreen();
+              if (!pid) return;
+
               stopTickTimer();
+              const result = await API.suicide(pid);
+
+              if (!getToken()) return; // 401：handleUnauthorized 已切回登录页
+
+              if (!result) {
+                addMessage('【自绝失败，请重试】', 'system');
+                startTickTimer();
+                drawScreen();
+                return;
+              }
+
+              addMessage(result['叙事文字'] || result.msg, 'battle');
+              clearLocal();
               playerData = null;
               currentView = 'login';
-              popupMode = null;
               await Auth.showCharacters();
               drawScreen();
             }

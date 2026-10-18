@@ -158,8 +158,10 @@ const Auth = {
       if (typeof saveLocal === 'function') saveLocal();
       drawScreen();
     } finally {
-      btn.disabled = false;
-      if (session === this.session) this.entering = false;
+      if (session === this.session) {
+        btn.disabled = false;
+        this.entering = false;
+      }
     }
   },
 
