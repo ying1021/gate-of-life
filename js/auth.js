@@ -121,7 +121,7 @@ const Auth = {
       startTickTimer();
       drawScreen();
     } finally {
-      this.entering = false;
+      if (session === this.session) this.entering = false;
     }
   },
 
@@ -159,7 +159,7 @@ const Auth = {
       drawScreen();
     } finally {
       btn.disabled = false;
-      this.entering = false;
+      if (session === this.session) this.entering = false;
     }
   },
 

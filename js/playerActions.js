@@ -11,13 +11,6 @@ async function newLife() {
   clearScreen();
   addMessage('正在召唤新的生灵...', 'system');
 
-  const cdCheck = await API.deathCooldown('test');
-  if (cdCheck && cdCheck['需要等待']) {
-    addMessage(`⏳ ${cdCheck.msg}`, 'system');
-    drawScreen();
-    return;
-  }
-
   const result = await API.newLife();
   if (result && result.玩家状态) {
     playerData = result['玩家状态'];
@@ -135,7 +128,7 @@ async function fishing() {
       popupTitle = '仙女问斧：你掉的是哪一把？';
       popupData = [
         { label: '🥇 金斧头', action: async () => {
-          const cr = await API.fairyChoice('金斧头');
+          const cr = await API.fairyChoice(pid, '金斧头');
           if (cr) {
             addMessage(cr['结果'], 'event');
             (cr['获得道具'] || []).forEach(item => {
@@ -146,7 +139,7 @@ async function fishing() {
           popupMode = null; drawScreen();
         }},
         { label: '🥈 银斧头', action: async () => {
-          const cr = await API.fairyChoice('银斧头');
+          const cr = await API.fairyChoice(pid, '银斧头');
           if (cr) {
             addMessage(cr['结果'], 'event');
             (cr['获得道具'] || []).forEach(item => {
@@ -157,7 +150,7 @@ async function fishing() {
           popupMode = null; drawScreen();
         }},
         { label: '🔧 铁斧头', action: async () => {
-          const cr = await API.fairyChoice('铁斧头');
+          const cr = await API.fairyChoice(pid, '铁斧头');
           if (cr) {
             addMessage(cr['结果'], 'event');
             (cr['获得道具'] || []).forEach(item => {
@@ -354,11 +347,17 @@ async function longPressBattle() {
         popupTitle = '确认自绝？';
         popupData = [
           { label: '确定自绝（数据将全部清空）', action: async () => {
-              clearLocal();
-              const pid = playerData?.id || 'test';
+              const pid = playerData?.id;
+              if (!pid) { popupMode = null; drawScreen(); return; }
               const result = await API.suicide(pid);
-              if (result) { addMessage(result['叙事文字'] || result.msg, 'battle'); playerData = null; currentView = 'login'; }
-              popupMode = null; drawScreen();
+              if (result) addMessage(result['叙事文字'] || result.msg, 'battle');
+              clearLocal();
+              stopTickTimer();
+              playerData = null;
+              currentView = 'login';
+              popupMode = null;
+              await Auth.showCharacters();
+              drawScreen();
             }
           },
           { label: '取消', action: () => { popupMode = null; drawScreen(); } }
