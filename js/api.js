@@ -13,6 +13,10 @@ function setCache(key, data) {
   apiCache.set(key, { data, time: Date.now() });
 }
 
+function detailText(detail) {
+  if (Array.isArray(detail)) return detail.map(d => (d && d.msg) || String(d)).join('；');
+  return typeof detail === 'string' ? detail : '';
+}
 
 async function request(path, method = 'GET', body = null) {
   const noCache = path.startsWith('/auth/') || path.startsWith('/player/list') || path.startsWith('/player/state');
@@ -33,11 +37,12 @@ async function request(path, method = 'GET', body = null) {
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
-        if (typeof handleUnauthorized === 'function') handleUnauthorized();
+        if (typeof handleUnauthorized === 'function') handleUnauthorized(token);
         return null;
       }
       if (res.status >= 400 && res.status < 500) {
-        if (data && data.detail) addMessage('【' + data.detail + '】', 'system');
+        const detail = detailText(data && data.detail);
+        if (detail) addMessage('【' + detail + '】', 'system');
         return null;
       }
       throw new Error('Server error');
@@ -68,7 +73,7 @@ async function authRequest(path, body) {
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { error: data.detail || '请求失败' };
+    if (!res.ok) return { error: detailText(data && data.detail) || '请求失败' };
     return data;
   } catch (e) {
     return { error: '网络错误，请稍后重试' };
@@ -81,7 +86,7 @@ const API = {
   login: (username, password) => authRequest('/auth/login', { username, password }),
   me: () => request('/auth/me', 'GET'),
   playerList: () => request('/player/list', 'GET'),
-  playerState: (pid) => request(`/player/state?player_id=${pid}`, 'GET'),
+  playerState: (pid) => request(`/player/state?player_id=${encodeURIComponent(pid)}`, 'GET'),
 
   newLife: async () => {
     const result = await request('/player/new_life', 'POST');

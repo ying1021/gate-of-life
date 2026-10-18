@@ -15,27 +15,45 @@ function showCharError(message) {
 }
 
 // 任意接口返回 401 时由 api.js 调用
-function handleUnauthorized() {
+function handleUnauthorized(failedToken) {
+  if (failedToken && getToken() && failedToken !== getToken()) return;
   clearToken();
   if (typeof stopTickTimer === 'function') stopTickTimer();
+  if (typeof clearLocal === 'function') clearLocal();
   playerData = null;
   currentView = 'login';
+  Auth.session++;
+  Auth.resetPopup();
   Auth.showLogin('登录已过期，请重新登录');
 }
 
 const Auth = {
   mode: 'login',
+  session: 0,
+  entering: false,
+
+  resetPopup() {
+    popupMode = null;
+    popupData = [];
+    popupTitle = '';
+    selectedIndex = 0;
+  },
 
   async init() {
     if (!getToken()) { this.showLogin(); return; }
     const me = await API.me();
-    if (!me || !me.id) { clearToken(); this.showLogin(); return; }
+    if (!me || !me.id) {
+      // 401 已由 handleUnauthorized 清除令牌；网络故障时保留令牌，刷新后可重试
+      if (getToken()) this.showLogin('无法连接服务器，请刷新重试');
+      return;
+    }
     await this.showCharacters();
   },
 
   showLogin(message) {
     document.getElementById('authOverlay').classList.remove('hidden');
     document.getElementById('charOverlay').classList.add('hidden');
+    this.setMode('login');
     showAuthError(message);
   },
 
@@ -63,62 +81,89 @@ const Auth = {
       card.type = 'button';
       card.className = 'char-card';
       const map = player.current_map || '未知';
-      const time = (player.updated_at || '').replace('T', ' ').slice(0, 16);
-      card.textContent = `${player.species}  Lv.${player.level}  · ${map}  · ${time}`;
+      const time = String(player.updated_at || '').replace('T', ' ').slice(0, 16);
+      card.textContent = `${player.species || '未知'}  Lv.${player.level || 1}  · ${map}  · ${time}`;
       card.addEventListener('click', () => this.enterGame(player.id));
       listEl.appendChild(card);
     }
   },
 
   enterGame: async function(playerId) {
-    showCharError('');
-    const result = await API.playerState(playerId);
-    if (!result || !result['玩家状态']) { showCharError('进入游戏失败，请重试'); return; }
+    if (this.entering) return;
+    this.entering = true;
+    const session = this.session;
+    try {
+      showCharError('');
+      const result = await API.playerState(playerId);
+      if (session !== this.session) return;
+      if (!result || !result['玩家状态']) { showCharError('进入游戏失败，请重试'); return; }
 
-    playerData = result['玩家状态'];
-    if (!playerData.inventory) playerData.inventory = {};
-    if (!playerData.vital) {
-      playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
+      playerData = result['玩家状态'];
+      if (!playerData.inventory || Object.keys(playerData.inventory).length === 0) {
+        playerData.inventory = { '野果': 2, '草药绷带': 1, '生锈的铁刀': 1 };
+      }
+      if (!playerData.vital) {
+        playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
+      }
+      if (!playerData.current_map) playerData.current_map = '城郊青草地';
+
+      this.resetPopup();
+      document.getElementById('charOverlay').classList.add('hidden');
+      document.getElementById('authOverlay').classList.add('hidden');
+      currentView = 'main';
+      clearScreen();
+      addMessage('你回到了众生之域。', 'system');
+      startTickTimer();
+      drawScreen();
+    } finally {
+      this.entering = false;
     }
-    if (!playerData.current_map) playerData.current_map = '城郊青草地';
-
-    document.getElementById('charOverlay').classList.add('hidden');
-    document.getElementById('authOverlay').classList.add('hidden');
-    currentView = 'main';
-    clearScreen();
-    addMessage('你回到了众生之域。', 'system');
-    startTickTimer();
-    drawScreen();
   },
 
   newCharacter: async function() {
+    if (this.entering) return;
+    this.entering = true;
+    const session = this.session;
     const btn = document.getElementById('newCharBtn');
     showCharError('');
     btn.disabled = true;
-    const result = await API.newLife();
-    btn.disabled = false;
+    try {
+      const result = await API.newLife();
+      if (session !== this.session) return;
+      if (!result || !result['玩家状态']) { showCharError('创建角色失败，请重试'); return; }
 
-    if (!result || !result['玩家状态']) { showCharError('创建角色失败，请重试'); return; }
+      playerData = result['玩家状态'];
+      if (!playerData.inventory || Object.keys(playerData.inventory).length === 0) {
+        playerData.inventory = { '野果': 2, '草药绷带': 1, '生锈的铁刀': 1 };
+      }
+      if (!playerData.vital) {
+        playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
+      }
+      if (!playerData.current_map) playerData.current_map = '城郊青草地';
+      if (!playerData.quests) playerData.quests = {};
+      playerData.quests['初来乍到'] = { '完成': true, '进度': 1 };
 
-    playerData = result['玩家状态'];
-    if (!playerData.inventory) {
-      playerData.inventory = { '野果': 2, '草药绷带': 1, '生锈的铁刀': 1 };
+      this.resetPopup();
+      document.getElementById('charOverlay').classList.add('hidden');
+      document.getElementById('authOverlay').classList.add('hidden');
+      currentView = 'main';
+      clearScreen();
+      addMessage(result['叙事文字'] || result.msg, 'system');
+      startTickTimer();
+      if (typeof saveLocal === 'function') saveLocal();
+      drawScreen();
+    } finally {
+      btn.disabled = false;
+      this.entering = false;
     }
-    if (!playerData.current_map) playerData.current_map = '城郊青草地';
-
-    document.getElementById('charOverlay').classList.add('hidden');
-    document.getElementById('authOverlay').classList.add('hidden');
-    currentView = 'main';
-    clearScreen();
-    addMessage(result['叙事文字'] || result.msg, 'system');
-    startTickTimer();
-    drawScreen();
   },
 
   logout: function() {
     clearToken();
     if (typeof stopTickTimer === 'function') stopTickTimer();
     if (typeof clearLocal === 'function') clearLocal();
+    this.session++;
+    this.resetPopup();
     playerData = null;
     currentView = 'login';
     this.showLogin();
@@ -135,31 +180,38 @@ const Auth = {
   },
 
   async submit() {
-    const username = document.getElementById('authUsername').value.trim();
-    const password = document.getElementById('authPassword').value;
-    showAuthError('');
+    const submitBtn = document.getElementById('authSubmit');
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    try {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      showAuthError('');
 
-    if (this.mode === 'register') {
-      const password2 = document.getElementById('authPassword2').value;
-      if (password !== password2) { showAuthError('两次输入的密码不一致'); return; }
-      const result = await API.register(username, password);
+      if (this.mode === 'register') {
+        const password2 = document.getElementById('authPassword2').value;
+        if (password !== password2) { showAuthError('两次输入的密码不一致'); return; }
+        const result = await API.register(username, password);
+        if (result && result.access_token) {
+          setToken(result.access_token);
+          document.getElementById('authForm').reset();
+          await this.showCharacters();
+        } else {
+          showAuthError((result && result.error) || '注册失败');
+        }
+        return;
+      }
+
+      const result = await API.login(username, password);
       if (result && result.access_token) {
         setToken(result.access_token);
         document.getElementById('authForm').reset();
         await this.showCharacters();
       } else {
-        showAuthError((result && result.error) || '注册失败');
+        showAuthError((result && result.error) || '登录失败');
       }
-      return;
-    }
-
-    const result = await API.login(username, password);
-    if (result && result.access_token) {
-      setToken(result.access_token);
-      document.getElementById('authForm').reset();
-      await this.showCharacters();
-    } else {
-      showAuthError((result && result.error) || '登录失败');
+    } finally {
+      submitBtn.disabled = false;
     }
   },
 };
