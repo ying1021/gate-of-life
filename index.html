@@ -8,9 +8,71 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#000; overflow:hidden; touch-action:none; padding-bottom: env(safe-area-inset-bottom); }
 canvas { display:block; }
+.hidden { display:none !important; }
+.overlay {
+  position:fixed; inset:0; z-index:10; overflow-y:auto;
+  background:#0d0d0d; display:flex; align-items:center; justify-content:center;
+  padding:20px; touch-action:pan-y;
+}
+.panel { width:100%; max-width:360px; background:#15151f; border:1px solid #333; border-radius:12px; padding:24px; }
+.panel h1 { color:#c8b878; font-size:24px; text-align:center; margin-bottom:18px; }
+.panel h2 { color:#c8b878; font-size:18px; margin-bottom:14px; }
+.tabs { display:flex; gap:8px; margin-bottom:16px; }
+.tab {
+  flex:1; padding:10px; background:#20202c; color:#999; border:1px solid #333;
+  border-radius:8px; font-size:14px;
+}
+.tab.active { background:#2a3a4a; color:#fff; border-color:#4a6a8a; }
+.panel input {
+  width:100%; padding:12px; margin-bottom:10px; background:#0d0d14; color:#eee;
+  border:1px solid #444; border-radius:8px; font-size:16px; outline:none;
+}
+.panel input:focus { border-color:#4a6a8a; }
+.primary, .secondary {
+  width:100%; padding:12px; margin-top:6px; border:none; border-radius:8px;
+  font-size:15px; font-weight:700;
+}
+.primary { background:#2a3a4a; color:#fff; }
+.primary:disabled { opacity:0.6; }
+.secondary { background:#20202c; color:#bbb; border:1px solid #333; }
+.error { color:#dd6666; font-size:13px; min-height:18px; margin-top:10px; text-align:center; }
+.empty { color:#777; text-align:center; padding:16px 0; font-size:14px; }
+.char-card {
+  display:block; width:100%; text-align:left; padding:14px; margin-bottom:10px;
+  background:#1d1d2a; color:#e0e0d8; border:1px solid #333; border-radius:8px;
+  font-size:14px; line-height:1.5;
+}
+.char-card:active { background:#2a3a4a; }
 </style>
 </head>
 <body>
+<div id="authOverlay" class="overlay">
+  <div class="panel">
+    <h1>众生之门</h1>
+    <div class="tabs">
+      <button id="tabLogin" class="tab active" type="button">登录</button>
+      <button id="tabRegister" class="tab" type="button">注册</button>
+    </div>
+    <form id="authForm">
+      <input id="authUsername" type="text" placeholder="用户名（3-20 位字母/数字/下划线）" autocomplete="username" required>
+      <input id="authPassword" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" required>
+      <input id="authPassword2" type="password" placeholder="确认密码" class="hidden" autocomplete="new-password">
+      <button id="authSubmit" class="primary" type="submit">登录</button>
+      <p id="authError" class="error"></p>
+    </form>
+  </div>
+</div>
+
+<div id="charOverlay" class="overlay hidden">
+  <div class="panel">
+    <h2>选择角色</h2>
+    <div id="charList"></div>
+    <p id="charError" class="error"></p>
+    <button id="newCharBtn" class="primary" type="button">+ 新建角色</button>
+    <button id="logoutBtn" class="secondary" type="button">退出登录</button>
+  </div>
+</div>
+
 <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -40,14 +102,20 @@ let touchStartY = 0, touchStartX = 0, isDragging = false, longPressTimer = null,
 <script src="js/canvasRenderer.js"></script>
 <script src="js/playerActions.js"></script>
 <script src="js/inputHandler.js"></script>
+<script src="js/auth.js"></script>
 
 <script>
-
 window.addEventListener('beforeunload', () => {
   if (playerData && playerData.id) {
-    navigator.sendBeacon(API_BASE + '/player/offline?player_id=' + playerData.id);
+    const token = localStorage.getItem('authToken');
+    fetch(API_BASE + '/player/offline?player_id=' + playerData.id, {
+      method: 'POST',
+      keepalive: true,
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+    });
   }
 });
+
 async function init() {
   clearScreen();
   addMessage('正在唤醒服务器...', 'system');
@@ -57,6 +125,7 @@ async function init() {
   if (result) addMessage(result.message, 'system');
   buildMainButtons();
   drawScreen();
+  await Auth.init();
 }
 init();
 document.addEventListener('touchstart', function() {
