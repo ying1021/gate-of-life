@@ -16,13 +16,16 @@ function showCharError(message) {
 
 // 任意接口返回 401 时由 api.js 调用
 function handleUnauthorized(failedToken) {
-  if (failedToken && getToken() && failedToken !== getToken()) return;
+  if (getToken() && failedToken !== getToken()) return;
   clearToken();
   if (typeof stopTickTimer === 'function') stopTickTimer();
   if (typeof clearLocal === 'function') clearLocal();
   playerData = null;
   currentView = 'login';
   Auth.session++;
+  Auth.entering = false;
+  const newBtn = document.getElementById('newCharBtn');
+  if (newBtn) newBtn.disabled = false;
   Auth.resetPopup();
   Auth.showLogin('登录已过期，请重新登录');
 }
@@ -40,8 +43,10 @@ const Auth = {
   },
 
   async init() {
-    if (!getToken()) { this.showLogin(); return; }
+    const token = getToken();
+    if (!token) { this.showLogin(); return; }
     const me = await API.me();
+    if (getToken() !== token) return; // 期间已重新登录，交给新流程
     if (!me || !me.id) {
       // 401 已由 handleUnauthorized 清除令牌；网络故障时保留令牌，刷新后可重试
       if (getToken()) this.showLogin('无法连接服务器，请刷新重试');
@@ -58,6 +63,7 @@ const Auth = {
   },
 
   showCharacters: async function() {
+    const session = this.session;
     document.getElementById('authOverlay').classList.add('hidden');
     document.getElementById('charOverlay').classList.remove('hidden');
     showCharError('');
@@ -66,6 +72,7 @@ const Auth = {
     if (typeof apiCache !== 'undefined') apiCache.clear();
 
     const result = await API.playerList();
+    if (session !== this.session) return;
     if (!result || !result.players) { showCharError('加载角色失败，请重试'); return; }
 
     if (result.players.length === 0) {
@@ -99,9 +106,7 @@ const Auth = {
       if (!result || !result['玩家状态']) { showCharError('进入游戏失败，请重试'); return; }
 
       playerData = result['玩家状态'];
-      if (!playerData.inventory || Object.keys(playerData.inventory).length === 0) {
-        playerData.inventory = { '野果': 2, '草药绷带': 1, '生锈的铁刀': 1 };
-      }
+      if (!playerData.inventory) playerData.inventory = {};
       if (!playerData.vital) {
         playerData.vital = { '生命机能': 100, '体力耐力': 100, '饱腹值': 100, '精神状态': 100 };
       }
@@ -163,6 +168,9 @@ const Auth = {
     if (typeof stopTickTimer === 'function') stopTickTimer();
     if (typeof clearLocal === 'function') clearLocal();
     this.session++;
+    this.entering = false;
+    const newBtn = document.getElementById('newCharBtn');
+    if (newBtn) newBtn.disabled = false;
     this.resetPopup();
     playerData = null;
     currentView = 'login';
