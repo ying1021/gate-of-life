@@ -15,19 +15,33 @@ function setCache(key, data) {
 
 
 async function request(path, method = 'GET', body = null) {
-  const cacheKey = method === 'GET' ? path : null;
+  const noCache = path.startsWith('/auth/') || path.startsWith('/player/list') || path.startsWith('/player/state');
+  const cacheKey = method === 'GET' && !noCache ? path : null;
   if (cacheKey) {
     const cached = getCached(cacheKey);
     if (cached) return cached;
   }
 
   const url = API_BASE + path;
+  const token = localStorage.getItem('authToken');
   const options = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) options.headers['Authorization'] = 'Bearer ' + token;
   if (body) options.body = JSON.stringify(body);
 
   try {
     const res = await fetch(url, options);
-    if (!res.ok) throw new Error('Server error');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        if (typeof handleUnauthorized === 'function') handleUnauthorized();
+        return null;
+      }
+      if (res.status >= 400 && res.status < 500) {
+        if (data && data.detail) addMessage('【' + data.detail + '】', 'system');
+        return null;
+      }
+      throw new Error('Server error');
+    }
     const data = await res.json();
     if (cacheKey) setCache(cacheKey, data);
     return data;
@@ -46,8 +60,29 @@ async function request(path, method = 'GET', body = null) {
   }
 }
 
+async function authRequest(path, body) {
+  try {
+    const res = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data.detail || '请求失败' };
+    return data;
+  } catch (e) {
+    return { error: '网络错误，请稍后重试' };
+  }
+}
+
 // 常用 API 快捷方法
 const API = {
+  register: (username, password) => authRequest('/auth/register', { username, password }),
+  login: (username, password) => authRequest('/auth/login', { username, password }),
+  me: () => request('/auth/me', 'GET'),
+  playerList: () => request('/player/list', 'GET'),
+  playerState: (pid) => request(`/player/state?player_id=${pid}`, 'GET'),
+
   newLife: async () => {
     const result = await request('/player/new_life', 'POST');
     if (result && result.玩家状态) {
@@ -78,7 +113,7 @@ const API = {
   fishing: (pid, map) => request(`/game/fishing?player_id=${pid}&map_region=${map}`, 'POST'),
   battle: (species, enemy, level) => request(`/game/battle?attacker_species=${species}&defender_species=${enemy}&attacker_level=${level}`, 'POST'),
   randomEvent: (pid, map, weather) => request(`/game/random_event?player_id=${pid}&map_region=${map}&weather_str=${weather}`, 'POST'),
-  fairyChoice: (choice) => request(`/game/fairy_choice?choice=${choice}`, 'POST'),
+  fairyChoice: (pid, choice) => request(`/game/fairy_choice?player_id=${pid}&choice=${choice}`, 'POST'),
   shopInfo: (map) => request(`/shop/info?map_region=${map}`, 'GET'),
   shopBuy: (map, shop, item, pid) => request(`/shop/buy?map_region=${map}&shop_name=${shop}&item_name=${item}&player_id=${pid}`, 'POST'),
   inventoryView: (pid) => request(`/inventory/view?player_id=${pid}`, 'GET'),
