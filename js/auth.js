@@ -30,6 +30,18 @@ function handleUnauthorized(failedToken) {
   Auth.showLogin('登录已过期，请重新登录');
 }
 
+// 403：token 有效但不拥有该角色（如在另一个标签页删除了角色，或切换了账号）
+function handleForbidden() {
+  if (!getToken()) return;
+  if (typeof stopTickTimer === 'function') stopTickTimer();
+  if (typeof clearLocal === 'function') clearLocal();
+  Auth.session++;
+  Auth.entering = false;
+  Auth.resetPopup();
+  if (typeof drawScreen === 'function') drawScreen();
+  Auth.showCharacters();
+}
+
 const Auth = {
   mode: 'login',
   session: 0,
@@ -234,3 +246,21 @@ document.getElementById('authForm').addEventListener('submit', (event) => {
 });
 document.getElementById('newCharBtn').addEventListener('click', () => Auth.newCharacter());
 document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+
+// 其他标签页登录/退出时同步本标签页（storage 事件只在其它标签页触发）
+window.addEventListener('storage', (event) => {
+  if (event.key !== AUTH_TOKEN_KEY) return;
+  const newToken = event.newValue;
+  Auth.session++;
+  Auth.entering = false;
+  if (typeof stopTickTimer === 'function') stopTickTimer();
+  if (typeof clearLocal === 'function') clearLocal();
+  Auth.resetPopup();
+  const newBtn = document.getElementById('newCharBtn');
+  if (newBtn) newBtn.disabled = false;
+  if (newToken) {
+    Auth.init(); // 用新账号的 token 重新校验并刷新角色列表
+  } else {
+    Auth.showLogin('已退出登录');
+  }
+});

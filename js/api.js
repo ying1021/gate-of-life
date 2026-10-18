@@ -43,6 +43,7 @@ async function request(path, method = 'GET', body = null) {
       if (res.status >= 400 && res.status < 500) {
         const detail = detailText(data && data.detail);
         if (detail) addMessage('【' + detail + '】', 'system');
+        if (res.status === 403 && typeof handleForbidden === 'function') handleForbidden();
         return null;
       }
       throw new Error('Server error');
