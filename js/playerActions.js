@@ -221,6 +221,7 @@ function showInventory() {
 
 async function showSettlement() {
   addMessage('> 查看营地', 'system');
+  drawScreen();
   const pid = playerData?.id || 'test';
   const result = await API.settlementView(pid);
   if (result) {
@@ -234,13 +235,20 @@ async function showMap() {
   addMessage('> 查看地图', 'system');
   const map = playerData?.current_map || '城郊青草地';
   addMessage(`📍 当前位置：${map}`, 'system');
+  drawScreen();
   const result = await API.mapMoves(playerData?.id || 'test', map);
   if (result && result['可前往'] && result['可前往'].length > 0) {
     addMessage('--- 可前往 ---', 'normal');
+    drawScreen();
+    // 商店信息并行获取，避免逐个等待
+    const explored = result['可前往'].filter(d => d['已探索']);
+    const shopInfos = await Promise.all(explored.map(d => API.shopInfo(d['名称'])));
+    const shopByMap = {};
+    explored.forEach((d, i) => { shopByMap[d['名称']] = shopInfos[i]; });
     for (let dest of result['可前往']) {
       const displayName = dest['已探索'] ? dest['名称'] : '???';
       if (dest['已探索']) {
-        const shopResult = await API.shopInfo(dest['名称']);
+        const shopResult = shopByMap[dest['名称']];
         let shopInfo = shopResult && shopResult['有商店'] ? `  🏪 x${shopResult['商店数量']}` : '';
         addMessage(`  → ${displayName}${shopInfo}`, 'heal');
       } else { addMessage(`  → ${displayName}（未探索）`, 'normal'); }
@@ -382,6 +390,7 @@ async function longPressBattle() {
 
 async function longPressInventory() {
   if (!playerData) return;
+  showMsg('> 正在打开背包...', 'system');
   const pid = playerData?.id || 'test';
   const result = await API.inventoryView(pid);
   if (result && result['背包'] && Object.keys(result['背包']).length > 0) {
@@ -493,6 +502,7 @@ async function longPressSettlement() {
 
 async function longPressMap() {
   if (!playerData) return;
+  showMsg('> 正在辨认道路...', 'system');
   const map = playerData.current_map || '城郊青草地';
   const result = await API.mapMoves(playerData?.id || 'test', map);
   
