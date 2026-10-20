@@ -115,7 +115,7 @@ const API = {
     return null; // ✅ return 放在 if 外部
   },
 
-  explore: (pid, map) => request(`/game/explore?player_id=${pid}&map_region=${map}`, 'POST'),
+  explore: (pid, map) => request(`/game/explore_full?player_id=${pid}&map_region=${map}`, 'POST'),
   fishing: (pid, map) => request(`/game/fishing?player_id=${pid}&map_region=${map}`, 'POST'),
   battle: (species, enemy, level) => request(`/game/battle?attacker_species=${species}&defender_species=${enemy}&attacker_level=${level}`, 'POST'),
   randomEvent: (pid, map, weather) => request(`/game/random_event?player_id=${pid}&map_region=${map}&weather_str=${weather}`, 'POST'),

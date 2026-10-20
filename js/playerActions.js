@@ -83,7 +83,8 @@ async function explore() {
   showMsg('> 你四处探索...', 'normal');
   const pid = playerData.id || 'test';
   const map = playerData.current_map || '城郊青草地';
-  const result = await API.explore(pid, map);
+  const response = await API.explore(pid, map);
+  const result = response && response['探索'];
   if (result) {
     addMessage(result['叙事'], 'normal');
     (result['获得道具'] || []).forEach(item => {
@@ -92,7 +93,7 @@ async function explore() {
       playerData.inventory[item['道具']] = (playerData.inventory[item['道具']] || 0) + 1;
     });
   }
-  const eventResult = await API.randomEvent(pid, map, '晴天');
+  const eventResult = response && response['随机事件'];
   if (eventResult && eventResult['触发']) {
     addMessage('✨ ' + eventResult['叙事'], 'event');
     (eventResult['获得道具'] || []).forEach(item => {
