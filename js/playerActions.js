@@ -103,7 +103,6 @@ async function explore() {
   }
   checkQuest('初次探索');
   saveLocal();
-  await API.savePlayer(pid);
   drawScreen();
 }
 
@@ -166,7 +165,6 @@ async function fishing() {
     }
   }
   saveLocal();
-  await API.savePlayer(pid);
   drawScreen();
 }
 
@@ -205,7 +203,6 @@ async function battle() {
   }
   checkQuest('初次战斗');
   saveLocal();
-  await API.savePlayer(pid);
   drawScreen();
 }
 
